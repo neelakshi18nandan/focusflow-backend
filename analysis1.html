@@ -278,7 +278,7 @@ function loadSessionData() {
     sessionMap = {};
 
     const user = JSON.parse(localStorage.getItem('focusFlow_User') || 'null');
-    if (!user || !user.logs) return;
+    if (!user?.logs) return;
 
     user.logs.forEach(s => {
         const d    = new Date(s.date + 'T00:00:00');
@@ -289,7 +289,6 @@ function loadSessionData() {
         sessionMap[key][week] = parseFloat((sessionMap[key][week] + hrs).toFixed(2));
     });
 }
-
 
     // FIX: also check the analytics handoff key written by prepareAnalyticsData() in script.js
     const handoff = JSON.parse(localStorage.getItem('focusFlow_AnalyticsUser') || 'null');
@@ -499,7 +498,6 @@ function initUser() {
         ? `Last active: ${lastDate}`
         : 'No sessions yet — start studying!';
 }
-
 
 
 /* ── Boot ── */
