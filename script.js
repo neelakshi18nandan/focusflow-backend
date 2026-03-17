@@ -1,7 +1,7 @@
 /* ========================================
    API CONFIGURATION
 ======================================== */
-const BASE_URL = "http://localhost:8080";
+const BASE_URL = "https://focusflow-backend-mg1p.onrender.com";
 
 /* ========================================
    CLOCK FUNCTIONALITY
