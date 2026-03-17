@@ -277,21 +277,19 @@ let sessionMap = {}; // key: "YYYY-M" (1-based month) → array of {hoursStudied
 function loadSessionData() {
     sessionMap = {};
 
-    // Try logged-in user first
-    const currentEmail = localStorage.getItem('currentUser');
-    if (currentEmail) {
-        const users = JSON.parse(localStorage.getItem('users') || '{}');
-        const sessions = users[currentEmail]?.sessions || [];
-        sessions.forEach(s => {
-            const d    = new Date(s.date + 'T00:00:00');
-            const key  = `${d.getFullYear()}-${d.getMonth() + 1}`;
-            const hrs  = (s.timeStudied || 0) / 3600;
-            const week = Math.min(Math.floor((d.getDate() - 1) / 7), 3);
-            if (!sessionMap[key]) sessionMap[key] = [0, 0, 0, 0];
-            sessionMap[key][week] = parseFloat((sessionMap[key][week] + hrs).toFixed(2));
-        });
-        return;
-    }
+    const user = JSON.parse(localStorage.getItem('focusFlow_User') || 'null');
+    if (!user || !user.logs) return;
+
+    user.logs.forEach(s => {
+        const d    = new Date(s.date + 'T00:00:00');
+        const key  = `${d.getFullYear()}-${d.getMonth() + 1}`;
+        const hrs  = (s.durationSec || 0) / 3600;
+        const week = Math.min(Math.floor((d.getDate() - 1) / 7), 3);
+        if (!sessionMap[key]) sessionMap[key] = [0, 0, 0, 0];
+        sessionMap[key][week] = parseFloat((sessionMap[key][week] + hrs).toFixed(2));
+    });
+}
+
 
     // FIX: also check the analytics handoff key written by prepareAnalyticsData() in script.js
     const handoff = JSON.parse(localStorage.getItem('focusFlow_AnalyticsUser') || 'null');
@@ -487,34 +485,22 @@ function nav(d) {
 
 /* ── User init — FIX: uses correct localStorage keys matching script.js ── */
 function initUser() {
-    const currentEmail = localStorage.getItem('currentUser');
-    let name = 'Guest', streak = 0, lastDate = '';
+    const savedUsername = localStorage.getItem('currentUsername');
+    const user = JSON.parse(localStorage.getItem('focusFlow_User') || 'null');
 
-    if (currentEmail) {
-        const users = JSON.parse(localStorage.getItem('users') || '{}');
-        if (users[currentEmail]) {
-            name     = users[currentEmail].name || 'User';
-            streak   = (users[currentEmail].sessions || []).length;
-            const sessions = users[currentEmail].sessions || [];
-            if (sessions.length > 0) {
-                lastDate = sessions[sessions.length - 1].date;
-            }
-        }
-    } else {
-        // Try the handoff data from the timer page
-        const handoff = JSON.parse(localStorage.getItem('focusFlow_AnalyticsUser') || 'null');
-        if (handoff) {
-            name     = handoff.name || 'Guest';
-            streak   = handoff.streak || 0;
-            lastDate = handoff.lastDate || '';
-        }
-    }
+    const name     = savedUsername || user?.name || 'Guest';
+    const streak   = user?.streak || 0;
+    const lastDate = user?.lastDate || '';
 
     document.getElementById('uName').textContent   = name;
-    document.getElementById('uInit').textContent   = name[0]?.toUpperCase() || 'U';
+    document.getElementById('uInit').textContent   = name[0]?.toUpperCase() || 'G';
     document.getElementById('uStreak').textContent = streak;
-    document.getElementById('uSub').textContent    = lastDate ? `Last active: ${lastDate}` : 'No sessions yet — start studying!';
+    document.getElementById('uSub').textContent    = lastDate
+        ? `Last active: ${lastDate}`
+        : 'No sessions yet — start studying!';
 }
+
+
 
 /* ── Boot ── */
 function boot() {
