@@ -408,6 +408,8 @@ function handleSignIn() {
         localStorage.setItem("currentUser", data.email);
 
         document.getElementById('loginBtn').innerText = "👋 Hi, " + data.username;
+        document.getElementById('loginBtn').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'block';
         loadTodos();
         closeLogin();
         document.getElementById('welcomeModal').style.display = "flex";
@@ -416,6 +418,23 @@ function handleSignIn() {
         console.error("Sign in error:", err);
         alert("Could not connect to server. Make sure Spring Boot is running on port 8080.");
     });
+}
+
+function handleLogout() {
+    currentUserId = null;
+    currentUsername = null;
+    currentUser = null;
+    localStorage.removeItem("currentUserId");
+    localStorage.removeItem("currentUsername");
+    localStorage.removeItem("currentUser");
+    localStorage.removeItem("focusFlow_User");
+
+    document.getElementById('loginBtn').style.display = 'block';
+    document.getElementById('loginBtn').innerText = "🔐 Sign In";
+    document.getElementById('logoutBtn').style.display = 'none';
+
+    loadTodos();
+    showToast("👋 Logged out successfully!", 3000, 'info');
 }
 
 /* ========================================
@@ -465,6 +484,8 @@ function handleSignUp() {
         localStorage.setItem("currentUser", data.email);
 
         document.getElementById('loginBtn').innerText = "👋 Hi, " + data.username;
+        document.getElementById('loginBtn').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'block';
 
         document.getElementById('signupName').value = '';
         document.getElementById('signupEmail').value = '';
@@ -860,6 +881,8 @@ window.addEventListener('load', function () {
         currentUsername = savedUsername;
         currentUser = savedEmail;
         document.getElementById('loginBtn').innerText = "👋 Hi, " + savedUsername;
+        document.getElementById('loginBtn').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'block';
         loadTodos();
     }
 });
