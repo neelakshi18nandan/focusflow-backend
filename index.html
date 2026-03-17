@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Timer UI</title>
+    <link rel="stylesheet" href="style2.css">
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+    <div class="nav-btn" onclick="openDurationModal()">⏱️ Set Duration</div>
+    <div class="nav-btn progress-btn" onclick="handleNavigation(this)">
+        <div class="progress-fill" id="btnFill"></div>
+        <span class="btn-text">📊 Progress</span>
+    </div>
+
+    <!-- ✨ MOTIVATIONAL QUOTE -->
+    <div class="nav-quote">
+        <span class="quote-icon">✦</span>
+        <span class="quote-text" id="rotatingQuote">Quiet focus builds loud success.</span>
+        <span class="quote-icon">✦</span>
+    </div>
+
+    <div class="nav-btn login" id="loginBtn" onclick="openLogin()">🔐 Sign In</div>
+</div>
+
+<div class="main">
+
+    <div class="left-panel">
+        <div class="todo">
+            <h3>📝 To Do List</h3>
+            <input id="todoInput" placeholder="Add a new task...">
+            <ul id="todoList"></ul>
+        </div>
+        <button class="end-day-btn" onclick="endTheDay()">End the Day</button>
+    </div>
+
+    <div class="timer-wrapper">
+        <div class="outer-ring">
+            <div class="inner-ring">
+                <div class="time" id="timer">25:00</div>
+            </div>
+        </div>
+        <div class="controls">
+            <div class="control-btn reset" onclick="resetTimer()">↻</div>
+            <div class="control-btn play" id="playPauseBtn" onclick="togglePlayPause()">▶</div>
+        </div>
+    </div>
+
+    <div id="infoPanel"></div>
+
+    <div class="clock-cat-container">
+        <div class="cat-popup">
+            <img id="catMood" src="first.gif" alt="Cat mood">
+        </div>
+
+        <!-- Clock + both round buttons -->
+        <div class="clock-spotify-row">
+            <div class="clock" id="clock"></div>
+
+            <!-- 🧠 Brain Fog Button -->
+            <div class="brain-fab-wrapper">
+                <button class="brain-fab" onclick="toggleBrainPopup()">🧠</button>
+                <div class="fab-tooltip"><span class="tt-dot"></span>Play a focus frequency to help clear mental fog.</div>
+
+                <div class="brain-popup" id="brainPopup">
+                    <div class="popup-header">
+                        <div class="popup-title"><span>🧠 Focus Boost</span></div>
+                        <button class="popup-close" onclick="toggleBrainPopup()">✕</button>
+                    </div>
+                    <p class="brain-popup-desc">
+                        1-min <strong>852Hz Solfeggio frequency tone</strong> to clear brain fog, Listen for 60 seconds before studying.<br>
+                        <strong>Use headphones</strong> for best effect.
+                    </p>
+                    <div class="brain-wave" id="brainWave">
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div class="brain-progress-wrap" id="brainProgressWrap">
+                        <div class="brain-progress-bar-bg">
+                            <div class="brain-progress-bar-fill" id="brainBarFill"></div>
+                        </div>
+                        <div class="brain-progress-label">
+                            <span>Focus Boost</span>
+                            <span id="brainCountdown">1:00</span>
+                        </div>
+                    </div>
+                    <button class="brain-play-btn" id="brainPlayBtn" onclick="toggleBrainFog()">
+                        ▶ &nbsp;Start Focus Tone
+                    </button>
+                </div>
+            </div>
+
+            <!-- 🎵 Spotify Button -->
+            <div class="spotify-fab-wrapper">
+                <button class="spotify-fab" onclick="toggleSpotifyPopup()">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.494 17.324a.748.748 0 0 1-1.03.249c-2.82-1.725-6.369-2.115-10.549-1.16a.748.748 0 1 1-.333-1.458c4.573-1.045 8.494-.595 11.664 1.339a.748.748 0 0 1 .248 1.03zm1.466-3.261a.936.936 0 0 1-1.287.308c-3.226-1.983-8.144-2.558-11.962-1.399a.937.937 0 0 1-.574-1.786c4.36-1.325 9.779-.683 13.515 1.59a.937.937 0 0 1 .308 1.287zm.126-3.396c-3.868-2.298-10.248-2.51-13.941-1.389a1.122 1.122 0 1 1-.651-2.148c4.239-1.287 11.285-1.038 15.738 1.606a1.122 1.122 0 1 1-1.146 1.931z"/>
+                    </svg>
+                </button>
+                <div class="fab-tooltip"><span class="tt-dot"></span>Play background music for focus</div>
+
+                <div class="spotify-popup" id="spotifyPopup">
+
+                    <!-- VIEW 1: Card grid (original design) -->
+                    <div id="spCardView">
+                        <div class="popup-header">
+                            <div class="popup-title">
+                                <svg viewBox="0 0 24 24" style="fill:#1db954"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.494 17.324a.748.748 0 0 1-1.03.249c-2.82-1.725-6.369-2.115-10.549-1.16a.748.748 0 1 1-.333-1.458c4.573-1.045 8.494-.595 11.664 1.339a.748.748 0 0 1 .248 1.03zm1.466-3.261a.936.936 0 0 1-1.287.308c-3.226-1.983-8.144-2.558-11.962-1.399a.937.937 0 0 1-.574-1.786c4.36-1.325 9.779-.683 13.515 1.59a.937.937 0 0 1 .308 1.287zm.126-3.396c-3.868-2.298-10.248-2.51-13.941-1.389a1.122 1.122 0 1 1-.651-2.148c4.239-1.287 11.285-1.038 15.738 1.606a1.122 1.122 0 1 1-1.146 1.931z"/></svg>
+                                <span>Focus Sounds</span>
+                            </div>
+                            <button class="popup-close" onclick="toggleSpotifyPopup()">✕</button>
+                        </div>
+
+                        <div class="sp-login-banner">
+                            <div class="sp-login-text">
+                                <strong>🔐 Log in for full songs</strong>
+                                Log in to Spotify to listen to entire tracks without interruption.
+                            </div>
+                            <a class="sp-login-btn" href="https://accounts.spotify.com/login" target="_blank" rel="noopener noreferrer">
+                                <svg viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.494 17.324a.748.748 0 0 1-1.03.249c-2.82-1.725-6.369-2.115-10.549-1.16a.748.748 0 1 1-.333-1.458c4.573-1.045 8.494-.595 11.664 1.339a.748.748 0 0 1 .248 1.03zm1.466-3.261a.936.936 0 0 1-1.287.308c-3.226-1.983-8.144-2.558-11.962-1.399a.937.937 0 0 1-.574-1.786c4.36-1.325 9.779-.683 13.515 1.59a.937.937 0 0 1 .308 1.287zm.126-3.396c-3.868-2.298-10.248-2.51-13.941-1.389a1.122 1.122 0 1 1-.651-2.148c4.239-1.287 11.285-1.038 15.738 1.606a1.122 1.122 0 1 1-1.146 1.931z"/></svg>
+                                Log in
+                            </a>
+                        </div>
+
+                        <div class="sp-playlist-label">Pick the music your brain feels most comfortable studying with.</div>
+                        <div class="sp-card-grid">
+                            <div class="sp-card" onclick="openPlayer('playlist/4sFlqpGaP3yxX6zHSkdvvN', '🎵', 'Lofi Music')">
+                                <div class="sp-card-icon">🎵</div>
+                                <div class="sp-card-name">Lofi Music</div>
+                                <div class="sp-card-desc">Chill beats to relax</div>
+                            </div>
+                            <div class="sp-card" onclick="openPlayer('playlist/37i9dQZF1DWUZ5bk6qqDSy', '🤍', 'White Noise')">
+                                <div class="sp-card-icon">🤍</div>
+                                <div class="sp-card-name">White Noise</div>
+                                <div class="sp-card-desc">Block distractions</div>
+                            </div>
+                            <div class="sp-card" onclick="openPlayer('playlist/37i9dQZF1DX8ymr6UES7vc', '🌧️', 'Rain Sounds')">
+                                <div class="sp-card-icon">🌧️</div>
+                                <div class="sp-card-name">Rain Sounds</div>
+                                <div class="sp-card-desc">Gentle rain focus</div>
+                            </div>
+                            <div class="sp-card" onclick="openPlayer('album/74QDBZVz0htjkb8mwwt0La', '🏖️', 'Beach Sounds')">
+                                <div class="sp-card-icon">🏖️</div>
+                                <div class="sp-card-name">Beach Sounds</div>
+                                <div class="sp-card-desc">Ocean wave calm</div>
+                            </div>
+                            <div class="sp-card sp-card-solo" onclick="openPlayer('playlist/1HXEg2V1f17xECoB4t2PdZ', '🧬', 'Study Frequency')">
+                                <div class="sp-card-icon">🧬</div>
+                                <div class="sp-card-info">
+                                    <div class="sp-card-name">Study Frequency</div>
+                                    <div class="sp-card-desc">Binaural tones for peak focus</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 2: Embedded player -->
+                    <div id="spPlayerView" style="display:none;">
+                        <div class="popup-header">
+                            <button class="sp-back-btn" onclick="showSpCardView()">← Back</button>
+                            <div class="sp-now-playing" id="spNowPlaying">🎵 Lofi Music</div>
+                            <button class="popup-close" onclick="toggleSpotifyPopup()">✕</button>
+                        </div>
+                        <div class="sp-embed-wrap">
+                            <iframe id="spIframe"
+                                src=""
+                                width="100%" height="380" frameborder="0"
+                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                loading="lazy">
+                            </iframe>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- DURATION MODAL -->
+<div class="login-modal" id="durationModal">
+    <div class="login-card" style="width: 400px;">
+        <h2>Set Duration</h2>
+        <label style="display:block; text-align:left; margin-bottom:8px; color:#667eea; font-weight:600;">Total Study Hours</label>
+        <input id="totalHours" type="number" placeholder="2" value="2" min="0.5" step="0.5">
+        <div style="background: rgba(102, 126, 234, 0.1); padding: 12px; border-radius: 10px; margin: 15px 0; border-left: 4px solid #667eea;">
+            <p style="margin: 0; font-size: 13px; color: #4a5568; line-height: 1.5;">
+                💡 <strong>Pomodoro Tip:</strong> Experts suggest 25 minutes of study with a 5-minute break, or 50 minutes of deep focus followed by a 10-minute rest.
+            </p>
+        </div>
+        <label style="display:block; text-align:left; margin-bottom:8px; color:#667eea; font-weight:600;">Study Session (minutes)</label>
+        <input id="studyTime" type="number" placeholder="25" value="25" min="1">
+        <label style="display:block; text-align:left; margin-bottom:8px; margin-top:15px; color:#667eea; font-weight:600;">Break Time (minutes)</label>
+        <input id="breakTime" type="number" placeholder="5" value="5" min="0">
+        <div style="margin-top:15px; margin-bottom:15px;">
+            <label style="color:#667eea; font-weight:600; cursor: pointer;">
+                <input type="checkbox" id="noBreak" style="width:auto; margin-right:8px; cursor: pointer;">
+                No break
+            </label>
+        </div>
+        <button class="login-main" onclick="setCustomDuration()">Set Timer</button>
+        <button class="login-skip" onclick="closeDurationModal()">Cancel</button>
+    </div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="login-modal" id="loginModal">
+    <div class="login-card">
+        <div id="signInView">
+            <h2>✨ Welcome Back!</h2>
+            <p class="auth-subtitle">Sign in to continue your journey</p>
+            <input id="loginEmail" type="email" placeholder="Email address">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button class="login-main" onclick="handleSignIn()">Sign In</button>
+            <button class="login-gmail">📧 Sign in with Gmail</button>
+            <p class="auth-switch">Don't have an account? <span onclick="showSignUp()">Sign Up</span></p>
+            <button class="login-skip" onclick="closeLogin()">Continue without login</button>
+        </div>
+        <div id="signUpView" style="display: none;">
+            <h2>🚀 Start Your Journey</h2>
+            <p class="auth-subtitle">Create an account to track your progress</p>
+            <input id="signupName" placeholder="Full Name">
+            <input id="signupEmail" type="email" placeholder="Email address">
+            <input type="password" id="signupPassword" placeholder="Password">
+            <input type="password" id="signupConfirmPassword" placeholder="Confirm Password">
+            <button class="login-main" onclick="handleSignUp()">Create Account</button>
+            <button class="login-gmail">📧 Sign up with Gmail</button>
+            <p class="auth-switch">Already have an account? <span onclick="showSignIn()">Sign In</span></p>
+            <button class="login-skip" onclick="closeLogin()">Continue without login</button>
+        </div>
+    </div>
+</div>
+
+<!-- WELCOME MODAL -->
+<div class="login-modal" id="welcomeModal" style="display: none;">
+    <div class="login-card" style="width: 380px; background: rgba(255, 255, 255, 0.98);">
+        <div id="welcomeSection">
+            <div style="text-align: center; margin-bottom: 15px;">
+                <img src="cat.gif" alt="Welcome Cat" style="width: 120px; border-radius: 12px;">
+            </div>
+            <div class="speech-bubble" style="position: relative; background: linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.12)); padding: 18px; border-radius: 15px; margin-bottom: 20px; border: 2px solid rgba(102, 126, 234, 0.3);">
+                <p style="font-size: 15px; color: #4a5568; line-height: 1.5; margin: 0; text-align: center; font-weight: 500;">
+                    Welcome! Let's make today productive. Set your goal below and start strong!
+                </p>
+                <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 12px solid rgba(102, 126, 234, 0.3);"></div>
+                <div style="position: absolute; top: -9px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 10px solid rgba(102, 126, 234, 0.12);"></div>
+            </div>
+            <button class="login-main" onclick="showGoalForm()" style="margin-bottom: 12px;">Set Your Today's Goal</button>
+        </div>
+        <div id="goalFormSection" style="display: none;">
+            <!-- ✅ Back button -->
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+                <button onclick="showWelcomeSection()" style="
+                    background: transparent;
+                    border: 2px solid rgba(102,126,234,0.3);
+                    border-radius: 50%;
+                    width: 32px; height: 32px;
+                    font-size: 15px;
+                    cursor: pointer;
+                    color: #667eea;
+                    display: flex; align-items: center; justify-content: center;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.background='rgba(102,126,234,0.1)'"
+                   onmouseout="this.style.background='transparent'">✕</button>
+            </div>
+            <label style="display:block; text-align:left; margin-bottom:8px; color:#667eea; font-weight:600; font-size: 14px;">Total Study Hours</label>
+            <input id="welcomeTotalHours" type="number" placeholder="2" value="2" min="0.5" step="0.5">
+            <div style="background: rgba(102, 126, 234, 0.1); padding: 10px; border-radius: 10px; margin: 12px 0; border-left: 3px solid #667eea;">
+                <p style="margin: 0; font-size: 12px; color: #4a5568; line-height: 1.4;">
+                    💡 <strong>Pomodoro Tip:</strong> Experts suggest 25 minutes of study with a 5-minute break, or 50 minutes of deep focus followed by a 10-minute rest.
+                </p>
+            </div>
+            <label style="display:block; text-align:left; margin-bottom:8px; color:#667eea; font-weight:600; font-size: 14px;">Study Session (minutes)</label>
+            <input id="welcomeStudyTime" type="number" placeholder="25" value="25" min="1">
+            <label style="display:block; text-align:left; margin-bottom:8px; margin-top:12px; color:#667eea; font-weight:600; font-size: 14px;">Break Time (minutes)</label>
+            <input id="welcomeBreakTime" type="number" placeholder="5" value="5" min="0">
+            <div style="margin-top:12px; margin-bottom:15px;">
+                <label style="color:#667eea; font-weight:600; cursor: pointer; font-size: 14px;">
+                    <input type="checkbox" id="welcomeNoBreak" style="width:auto; margin-right:8px; cursor: pointer;">
+                    No break
+                </label>
+            </div>
+            <button class="login-main" onclick="setWelcomeGoal()">Start Studying!</button>
+        </div>
+    </div>
+</div>
+
+<!-- END DAY MODAL -->
+<div class="login-modal" id="endDayModal">
+    <div class="login-card" style="width: 400px; max-height: 92vh; overflow-y: auto; padding: 20px;">
+
+        <!-- Close button -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 4px;">
+            <button onclick="closeEndDaySummary()" style="
+                background: transparent;
+                border: 2px solid rgba(102,126,234,0.3);
+                border-radius: 50%;
+                width: 32px; height: 32px;
+                font-size: 15px;
+                cursor: pointer;
+                color: #667eea;
+                display: flex; align-items: center; justify-content: center;
+                transition: all 0.3s ease;
+            " onmouseover="this.style.background='rgba(102,126,234,0.1)'"
+               onmouseout="this.style.background='transparent'">✕</button>
+        </div>
+
+        <h2 style="margin-bottom: 10px;">Day Summary</h2>
+
+        <div style="text-align: center; margin-bottom: 10px;">
+            <img id="endDayCat" src="happy_cat.gif" alt="Cat" style="width: 110px; border-radius: 12px;">
+        </div>
+
+        <div style="position: relative; background: linear-gradient(135deg, rgba(102,126,234,0.12), rgba(118,75,162,0.12)); padding: 14px; border-radius: 15px; margin-bottom: 14px; border: 2px solid rgba(102,126,234,0.3);">
+            <p id="endDayMessage" style="font-size: 13px; color: #4a5568; line-height: 1.5; margin: 0; text-align: center; font-weight: 500;">
+                Good progress, but I know you're capable of even more. Quiet progress like this is exactly how big success is built— see you stronger tomorrow!
+            </p>
+            <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 12px solid rgba(102,126,234,0.3);"></div>
+            <div style="position: absolute; top: -9px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 10px solid rgba(102,126,234,0.12);"></div>
+        </div>
+
+        <div style="background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1)); padding: 16px; border-radius: 15px; margin-bottom: 16px; border: 2px solid rgba(102,126,234,0.3); display: flex; justify-content: space-around; align-items: center;">
+            <div style="text-align: center;">
+                <p style="font-size: 13px; color: #667eea; font-weight: 600; margin-bottom: 6px;">⏱️ Time Studied</p>
+                <p style="font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 0;">
+                    <span id="hoursStudied">0</span>h <span id="minutesStudied">0</span>m
+                </p>
+            </div>
+            <div style="width: 1px; height: 50px; background: rgba(102,126,234,0.3);"></div>
+            <div style="text-align: center;">
+                <p style="font-size: 13px; color: #667eea; font-weight: 600; margin-bottom: 6px;">✅ Tasks Done</p>
+                <p style="font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 0;">
+                    <span id="tasksCompleted">0</span>/<span id="totalTasks">0</span>
+                </p>
+            </div>
+        </div>
+
+        <button class="login-main" onclick="closeEndDayModal()">Start New Day</button>
+    </div>
+</div>
+
+<script>
+const quotes = [
+    "Quiet focus builds loud success.",
+    "Study now, shine later.",
+    "Little effort. Big future.",
+    "Pages today, possibilities tomorrow.",
+    "Focus is your superpower.",
+    "Learn softly, succeed loudly.",
+    "One more page.",
+    "Dreams require discipline.",
+    "Your future is studying with you.",
+    "Knowledge is quiet power.",
+    "You don't have to feel motivated, you just have to start.",
+    "Study tired, study bored, study unmotivated — just don't stop.",
+    "Five minutes of studying often becomes fifty once you begin.",
+    "The hardest part of studying is opening the book.",
+    "Your future doesn't care about your mood today.",
+    "Start messy, start slow, but start.",
+    "Even a little studying today beats none at all.",
+    "Motivation follows action, not the other way around.",
+    "You'll never regret studying once it's done.",
+    "Just one problem. Then another. Then another.",
+    "One day the life you want will demand the effort you avoid today.",
+    "Every hour you waste now becomes stress you carry later.",
+    "Your competition is studying while you are hesitating.",
+    "Comfort today can become regret tomorrow.",
+    "Success is often just boredom that someone decided to push through.",
+    "Your future is quietly watching the choices you make today.",
+    "The difference between a dream and reality is the discipline to study.",
+    "Most people fail not because they are incapable, but because they stop.",
+    "Hard chapters shape strong minds.",
+    "The version of you five years from now is built by the hours you use today."
+];
+
+let quoteIndex = 0;
+const quoteEl = document.getElementById('rotatingQuote');
+
+function rotateQuote() {
+    quoteEl.style.opacity = '0';
+    quoteEl.style.transform = 'translateY(6px)';
+    setTimeout(() => {
+        quoteIndex = (quoteIndex + 1) % quotes.length;
+        quoteEl.textContent = quotes[quoteIndex];
+        quoteEl.style.opacity = '1';
+        quoteEl.style.transform = 'translateY(0)';
+    }, 500);
+}
+
+setInterval(rotateQuote, 10000);
+
+/* ✅ Open embedded player view when a card is clicked */
+function openPlayer(uri, icon, name) {
+    document.getElementById('spNowPlaying').textContent = icon + ' ' + name;
+    document.getElementById('spIframe').src =
+        `https://open.spotify.com/embed/${uri}?utm_source=generator&theme=0`;
+    document.getElementById('spCardView').style.display = 'none';
+    document.getElementById('spPlayerView').style.display = 'block';
+}
+
+/* ✅ Back button — return to card grid */
+function showSpCardView() {
+    document.getElementById('spPlayerView').style.display = 'none';
+    document.getElementById('spCardView').style.display = 'block';
+    // Clear iframe src to stop playback when going back
+    document.getElementById('spIframe').src = '';
+}
+
+/* ✅ Toggle Spotify popup */
+function toggleSpotifyPopup() {
+    const popup = document.getElementById('spotifyPopup');
+    const isOpen = popup.classList.contains('open');
+    if (isOpen) {
+        // Reset to card view and stop playback on close
+        document.getElementById('spPlayerView').style.display = 'none';
+        document.getElementById('spCardView').style.display = 'block';
+        document.getElementById('spIframe').src = '';
+    }
+    popup.classList.toggle('open');
+}
+
+/* ✅ Toggle Brain popup */
+function toggleBrainPopup() {
+    const popup = document.getElementById('brainPopup');
+    popup.classList.toggle('open');
+}
+
+/* ✅ Close popups when clicking outside */
+document.addEventListener('click', function(e) {
+    const spotifyPopup = document.getElementById('spotifyPopup');
+    const spotifyWrapper = document.querySelector('.spotify-fab-wrapper');
+    const brainPopup = document.getElementById('brainPopup');
+    const brainWrapper = document.querySelector('.brain-fab-wrapper');
+
+    if (spotifyPopup && spotifyPopup.classList.contains('open')) {
+        if (!spotifyWrapper.contains(e.target)) {
+            spotifyPopup.classList.remove('open');
+        }
+    }
+    if (brainPopup && brainPopup.classList.contains('open')) {
+        if (!brainWrapper.contains(e.target)) {
+            brainPopup.classList.remove('open');
+        }
+    }
+});
+</script>
+
+<script src="script.js"></script>
+</body>
+</html>

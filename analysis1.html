@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Focus Flow | Analytics</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+    --bg-top:#040f2e; --bg-mid:#062a73; --bg-bottom:#1a4fa0;
+    --card:rgba(10,28,80,0.72); --mini:rgba(255,255,255,0.04);
+    --accent:#aef2ff; --accent2:#5b9eff; --gold:#ff9d00;
+    --border:rgba(174,242,255,0.13); --border-h:rgba(174,242,255,0.32);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+    font-family:'DM Sans',sans-serif;color:#fff;min-height:100vh;overflow-x:hidden;
+    background:linear-gradient(160deg,var(--bg-top) 0%,var(--bg-mid) 55%,var(--bg-bottom) 100%);
+}
+body::before{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:
+        radial-gradient(1px 1px at 10% 15%,rgba(174,242,255,.5) 0%,transparent 100%),
+        radial-gradient(1px 1px at 73%  8%,rgba(174,242,255,.3) 0%,transparent 100%),
+        radial-gradient(2px 2px at 40% 55%,rgba(91,158,255,.3)  0%,transparent 100%),
+        radial-gradient(1px 1px at 85% 42%,rgba(255,255,255,.2) 0%,transparent 100%),
+        radial-gradient(1px 1px at 20% 80%,rgba(174,242,255,.2) 0%,transparent 100%),
+        radial-gradient(1px 1px at 60% 25%,rgba(174,242,255,.18) 0%,transparent 100%),
+        radial-gradient(1px 1px at 90% 65%,rgba(255,255,255,.12) 0%,transparent 100%),
+        radial-gradient(1px 1px at 50% 92%,rgba(174,242,255,.15) 0%,transparent 100%);
+}
+.page{max-width:980px;margin:0 auto;padding:32px 24px 72px;position:relative;z-index:1}
+
+/* back button */
+.back-btn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(255,255,255,.06);border:1px solid var(--border);
+    color:rgba(255,255,255,.65);padding:9px 18px;border-radius:50px;
+    font-size:13px;font-weight:500;cursor:pointer;margin-bottom:28px;
+    transition:all .18s;text-decoration:none;
+}
+.back-btn:hover{background:rgba(174,242,255,.1);border-color:var(--accent);color:var(--accent);}
+
+/* user bar */
+.user-bar{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:16px 22px;backdrop-filter:blur(24px);margin-bottom:36px}
+.avatar{width:48px;height:48px;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:50%;display:flex;align-items:center;justify-content:center;color:#040f2e;font-weight:800;font-size:20px}
+.user-name{font-family:'Cinzel',serif;font-size:17px;color:var(--accent);font-weight:600;margin-bottom:3px}
+.user-sub{font-size:12px;opacity:.38;font-weight:300}
+.streak-pill{margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:7px;background:rgba(255,157,0,.09);padding:9px 16px;border-radius:50px;border:1.5px solid rgba(255,157,0,.45);box-shadow:0 0 14px rgba(255,157,0,.1)}
+
+/* heading */
+.heading{display:flex;align-items:baseline;gap:14px;margin-bottom:28px}
+.heading h1{font-family:'Cinzel',serif;font-size:28px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
+.heading h1 em{font-style:normal;color:var(--accent)}
+.heading-line{flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}
+
+/* year header */
+.year-header{
+    background:var(--card);border:1px solid var(--border);
+    border-radius:20px;padding:18px 26px;backdrop-filter:blur(24px);
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:18px;
+}
+.year-display{font-family:'Cinzel',serif;font-size:26px;font-weight:700;color:var(--accent);letter-spacing:1px}
+.year-sub{font-size:12px;opacity:.38;margin-top:3px}
+.year-controls{display:flex;align-items:center;gap:10px}
+.year-badge{font-size:9px;font-weight:700;letter-spacing:2px;padding:4px 12px;border-radius:20px;text-transform:uppercase;border:1px solid var(--accent);color:var(--accent)}
+.year-badge.past{border-color:rgba(255,255,255,.18);color:rgba(255,255,255,.3)}
+.nav-btn{background:rgba(255,255,255,.04);border:1px solid var(--border);color:#fff;width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .18s;line-height:1}
+.nav-btn:hover:not(:disabled){background:rgba(174,242,255,.1);border-color:var(--accent);transform:scale(1.06)}
+.nav-btn:disabled{opacity:.18;cursor:not-allowed}
+
+/* year summary strip */
+.year-summary{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:12px;
+    margin-bottom:18px;
+}
+.ys-card{background:var(--mini);border:1px solid var(--border);border-radius:16px;padding:15px 12px;text-align:center}
+.ys-val{font-family:'Cinzel',serif;font-size:22px;font-weight:700;color:var(--accent);line-height:1;margin-bottom:4px}
+.ys-lbl{font-size:9px;opacity:.35;letter-spacing:1.2px;text-transform:uppercase;font-weight:500}
+
+/* 3×2 month grid */
+.months-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+    align-items:stretch;
+}
+
+/* month cards */
+.month-card{background:var(--mini);border:1px solid var(--border);border-radius:18px;padding:16px 14px 12px;display:flex;flex-direction:column;transition:border-color .2s,background .2s,transform .2s;overflow:visible;height:100%}
+.month-card.can-hover{cursor:pointer}
+.month-card.can-hover:hover{border-color:var(--border-h);background:rgba(174,242,255,.05);transform:translateY(-3px)}
+.month-card.fut-card{opacity:.35}
+.month-card.cur-month{border-color:rgba(174,242,255,.35);background:rgba(174,242,255,.04)}
+
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px}
+.mon-name{font-family:'Cinzel',serif;font-size:12px;font-weight:600;opacity:.85}
+.cur-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);margin-top:2px}
+.mon-total{font-size:16px;font-weight:700;color:var(--accent);line-height:1}
+.mon-lbl{font-size:8px;opacity:.35;letter-spacing:1px;text-transform:uppercase;margin-top:1px}
+
+.chart-box{
+    position:relative;
+    width:calc(100% + 28px);
+    margin-left:-14px;
+    height:70px;
+    flex-shrink:0;
+}
+
+.card-stats{display:flex;justify-content:space-between;padding-top:8px;margin-top:10px;border-top:1px solid rgba(255,255,255,.06)}
+.stat{text-align:center}
+.stat-v{font-size:11px;font-weight:600;color:rgba(255,255,255,.7)}
+.stat-l{font-size:8px;opacity:.28;letter-spacing:.8px;text-transform:uppercase;margin-top:1px}
+
+/* empty state */
+.empty-state{
+    text-align:center;padding:40px 20px;opacity:.45;
+}
+.empty-state p{font-size:13px;margin-top:8px;line-height:1.6}
+
+/* expand overlay — FIX: use mouseenter on both card AND overlay, not just card */
+.overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .22s}
+.overlay.on{opacity:1;pointer-events:auto}
+.ov-bg{position:absolute;inset:0;background:rgba(4,10,35,.75);backdrop-filter:blur(10px)}
+.ov-card{position:relative;z-index:2;background:linear-gradient(145deg,#091d5c,#0c2270);border:1px solid rgba(174,242,255,.28);border-radius:26px;padding:28px 30px 24px;width:min(620px,90vw);box-shadow:0 32px 80px rgba(0,0,0,.55);transform:scale(.92) translateY(12px);transition:transform .28s cubic-bezier(.34,1.36,.64,1)}
+.overlay.on .ov-card{transform:scale(1) translateY(0)}
+.ov-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+.ov-mon{font-family:'Cinzel',serif;font-size:22px;font-weight:700;color:var(--accent);margin-bottom:4px}
+.ov-yr{font-size:12px;opacity:.38}
+.ov-total{font-family:'Cinzel',serif;font-size:28px;font-weight:700;color:var(--accent);line-height:1;text-align:right}
+.ov-tlbl{font-size:10px;opacity:.35;letter-spacing:1.2px;text-transform:uppercase;margin-top:3px;text-align:right}
+.ov-chart{height:200px;position:relative;margin-bottom:18px}
+.ov-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.ov-stat{background:rgba(255,255,255,.05);border:1px solid rgba(174,242,255,.1);border-radius:12px;padding:14px 12px;text-align:center}
+.ov-stat-v{font-family:'Cinzel',serif;font-size:20px;font-weight:600;color:var(--accent);margin-bottom:5px}
+.ov-stat-l{font-size:9px;opacity:.35;letter-spacing:1.2px;text-transform:uppercase}
+.ov-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.6);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .2s;}
+.ov-close:hover{background:rgba(255,255,255,.2);color:#fff}
+
+/* loading state */
+.loading-bar{height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);background-size:200% 100%;animation:loadSlide 1.2s ease-in-out infinite;border-radius:1px;margin-bottom:24px}
+@keyframes loadSlide{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+@media(max-width:680px){
+    .months-grid{grid-template-columns:repeat(2,1fr)}
+    .year-summary{grid-template-columns:repeat(2,1fr)}
+    .heading h1{font-size:22px}
+    .ov-stats{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:420px){
+    .months-grid{grid-template-columns:1fr}
+    .year-summary{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- back button -->
+<a class="back-btn" href="index.html">← Back to Timer</a>
+
+<!-- user bar -->
+<div class="user-bar">
+    <div class="avatar" id="uInit">U</div>
+    <div>
+        <p class="user-name" id="uName">—</p>
+        <p class="user-sub"  id="uSub">—</p>
+    </div>
+    <div class="streak-pill">
+        <span style="font-size:17px">🔥</span>
+        <span id="uStreak" style="font-weight:800;font-size:19px;color:#ff9d00">0</span>
+        <span style="font-size:9px;font-weight:700;opacity:.65;letter-spacing:1.5px">STREAK</span>
+    </div>
+</div>
+
+<!-- heading -->
+<div class="heading">
+    <h1>Your <em>Insights</em></h1>
+    <div class="heading-line"></div>
+</div>
+
+<!-- period nav -->
+<div class="year-header">
+    <div>
+        <div class="year-display" id="yearDisplay">Jan – Jun 2026</div>
+        <div class="year-sub"    id="yearSub">6-Month Overview</div>
+    </div>
+    <div class="year-controls">
+        <span class="year-badge" id="yearBadge">CURRENT</span>
+        <button class="nav-btn" id="btnPrev" onclick="nav(-1)">&#8249;</button>
+        <button class="nav-btn" id="btnNext" onclick="nav(1)">&#8250;</button>
+    </div>
+</div>
+
+<!-- year summary -->
+<div class="year-summary" id="yearSummary"></div>
+
+<!-- month grid -->
+<div class="months-grid" id="grid"></div>
+
+<!-- expand overlay — FIX: close button added, mouseleave moved to ov-card only -->
+<div class="overlay" id="overlay">
+    <div class="ov-bg" id="ovBg"></div>
+    <div class="ov-card" id="ovCard">
+        <button class="ov-close" onclick="hideOv()">✕</button>
+
+        <!-- WEEK VIEW (default) -->
+        <div id="weekView">
+            <div class="ov-top">
+                <div><p class="ov-mon" id="ovMon">—</p><p class="ov-yr" id="ovYr">—</p></div>
+                <div><p class="ov-total" id="ovTotal">—</p><p class="ov-tlbl">Total Hours</p></div>
+            </div>
+            <p style="font-size:11px;opacity:.45;text-align:center;margin-bottom:8px;margin-top:-10px;">Click a bar to see daily breakdown</p>
+            <div class="ov-chart"><canvas id="ovCanvas"></canvas></div>
+            <div class="ov-stats">
+                <div class="ov-stat"><div class="ov-stat-v" id="ovPeak">—</div><div class="ov-stat-l">Peak Week</div></div>
+                <div class="ov-stat"><div class="ov-stat-v" id="ovAvg">—</div><div class="ov-stat-l">Avg / Week</div></div>
+                <div class="ov-stat"><div class="ov-stat-v" id="ovSess">—</div><div class="ov-stat-l">Sessions</div></div>
+            </div>
+        </div>
+
+        <!-- DAILY DRILL-DOWN VIEW -->
+        <div id="dailyView" style="display:none">
+            <div class="ov-top">
+                <div>
+                    <button onclick="showWeekView()" style="background:rgba(174,242,255,.12);border:1px solid rgba(174,242,255,.25);color:var(--accent);padding:5px 13px;border-radius:30px;cursor:pointer;font-size:12px;font-weight:600;margin-bottom:8px;">← Back</button>
+                    <p class="ov-mon" id="dvWeekLabel">—</p>
+                    <p class="ov-yr" id="dvMonYear">—</p>
+                </div>
+                <div><p class="ov-total" id="dvTotal">—</p><p class="ov-tlbl">Week Total</p></div>
+            </div>
+            <div class="ov-chart"><canvas id="dvCanvas"></canvas></div>
+            <div class="ov-stats">
+                <div class="ov-stat"><div class="ov-stat-v" id="dvPeak">—</div><div class="ov-stat-l">Peak Day</div></div>
+                <div class="ov-stat"><div class="ov-stat-v" id="dvAvg">—</div><div class="ov-stat-l">Avg / Day</div></div>
+                <div class="ov-stat"><div class="ov-stat-v" id="dvDays">—</div><div class="ov-stat-l">Active Days</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+<script>
+const MONTHS      = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SHORT       = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const HALF_LABELS = ['Jan – Jun', 'Jul – Dec'];
+
+const NOW = new Date();
+const CY  = NOW.getFullYear();
+const CM  = NOW.getMonth(); // 0-based
+
+function curHalf() { return CM <= 5 ? 0 : 1; }
+
+function buildSlots() {
+    const list = [];
+    const MIN_YEAR = CY - 5;
+    for (let y = MIN_YEAR; y <= CY; y++) {
+        list.push({ year: y, half: 0 });
+        list.push({ year: y, half: 1 });
+    }
+    return list.filter(s => s.year < CY || s.half <= curHalf());
+}
+
+const SLOTS = buildSlots();
+let slotIdx = SLOTS.length - 1;
+
+function slotMonths(half) {
+    return half === 0 ? [0,1,2,3,4,5] : [6,7,8,9,10,11];
+}
+
+/* ── Real session data from localStorage ── */
+// FIX: reads from the correct key written by script.js
+let sessionMap = {}; // key: "YYYY-M" (1-based month) → array of {hoursStudied}
+
+function loadSessionData() {
+    sessionMap = {};
+
+    // Try logged-in user first
+    const currentEmail = localStorage.getItem('currentUser');
+    if (currentEmail) {
+        const users = JSON.parse(localStorage.getItem('users') || '{}');
+        const sessions = users[currentEmail]?.sessions || [];
+        sessions.forEach(s => {
+            const d    = new Date(s.date + 'T00:00:00');
+            const key  = `${d.getFullYear()}-${d.getMonth() + 1}`;
+            const hrs  = (s.timeStudied || 0) / 3600;
+            const week = Math.min(Math.floor((d.getDate() - 1) / 7), 3);
+            if (!sessionMap[key]) sessionMap[key] = [0, 0, 0, 0];
+            sessionMap[key][week] = parseFloat((sessionMap[key][week] + hrs).toFixed(2));
+        });
+        return;
+    }
+
+    // FIX: also check the analytics handoff key written by prepareAnalyticsData() in script.js
+    const handoff = JSON.parse(localStorage.getItem('focusFlow_AnalyticsUser') || 'null');
+    if (handoff?.sessions) {
+        handoff.sessions.forEach(s => {
+            const d    = new Date(s.date + 'T00:00:00');
+            const key  = `${d.getFullYear()}-${d.getMonth() + 1}`;
+            const hrs  = (s.timeStudied || 0) / 3600;
+            const week = Math.min(Math.floor((d.getDate() - 1) / 7), 3);
+            if (!sessionMap[key]) sessionMap[key] = [0, 0, 0, 0];
+            sessionMap[key][week] = parseFloat((sessionMap[key][week] + hrs).toFixed(2));
+        });
+    }
+}
+
+// Returns real session data if available, otherwise realistic demo data
+function weekData(year, mon) {
+    const key = `${year}-${mon + 1}`;
+    if (sessionMap[key]) return sessionMap[key];
+
+    // Deterministic but varied demo values — looks like real study patterns
+    const seed = year * 31 + mon * 7;
+    return [0,1,2,3].map(w => {
+        const raw = ((seed * 13 + w * 17 + 3) % 22) + 3; // range 3-24h
+        return parseFloat(raw.toFixed(1));
+    });
+}
+
+/* ── Chart registry ── */
+const charts = {};
+
+function nukeCharts() {
+    Object.values(charts).forEach(c => { try { c.destroy(); } catch(e) {} });
+    Object.keys(charts).forEach(k => delete charts[k]);
+    // FIX: also destroy the overlay chart when navigating
+    if (ovChart) {
+        try { ovChart.destroy(); } catch(e) {}
+        ovChart = null;
+    }
+    if (dvChart) {
+        try { dvChart.destroy(); } catch(e) {}
+        dvChart = null;
+    }
+}
+
+function miniChart(id, data, delay) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const ctx = el.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 0, 70);
+    g.addColorStop(0, 'rgba(174,242,255,0.9)');
+    g.addColorStop(1, 'rgba(91,158,255,0.35)');
+    charts[id] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['W1','W2','W3','W4'],
+            datasets: [{ data, backgroundColor: g, borderRadius: 5, borderSkipped: false, hoverBackgroundColor: 'rgba(255,255,255,.85)' }]
+        },
+        options: {
+            animation: { duration: 500, delay, easing: 'easeOutQuart' },
+            responsive: false, maintainAspectRatio: false,
+            scales: {
+                y: { display: false, beginAtZero: true },
+                x: { ticks: { color: 'rgba(255,255,255,.3)', font: { size: 9 } }, grid: { display: false }, border: { display: false } }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(4,15,46,.92)', borderColor: 'rgba(174,242,255,.2)', borderWidth: 1,
+                    titleColor: '#aef2ff', bodyColor: 'rgba(255,255,255,.6)', padding: 8,
+                    callbacks: { label: c => ` ${c.parsed.y}h` }
+                }
+            }
+        }
+    });
+}
+
+/* ── Summary strip ── */
+function renderSummary(year, half, isCurrent) {
+    const mons      = slotMonths(half);
+    const endMon    = isCurrent ? CM : mons[mons.length - 1];
+    const visibleMons = mons.filter(m => m <= endMon);
+
+    let totalHrs = 0, totalSess = 0, bestMon = mons[0], bestVal = 0;
+    visibleMons.forEach(m => {
+        const wd = weekData(year, m);
+        const t  = wd.reduce((a, b) => a + b, 0);
+        totalHrs  += t;
+        totalSess += Math.floor(t / 1.2);
+        if (t > bestVal) { bestVal = t; bestMon = m; }
+    });
+    const avgMonth = visibleMons.length ? (totalHrs / visibleMons.length).toFixed(1) : '0.0';
+
+    document.getElementById('yearSummary').innerHTML = `
+        <div class="ys-card"><div class="ys-val">${totalHrs.toFixed(0)}h</div><div class="ys-lbl">Total Hours</div></div>
+        <div class="ys-card"><div class="ys-val">${totalSess}</div><div class="ys-lbl">Sessions</div></div>
+        <div class="ys-card"><div class="ys-val">${avgMonth}h</div><div class="ys-lbl">Avg / Month</div></div>
+        <div class="ys-card"><div class="ys-val">${bestVal > 0 ? SHORT[bestMon] : '—'}</div><div class="ys-lbl">Best Month</div></div>`;
+}
+
+/* ── Main render ── */
+function render(i) {
+    nukeCharts();
+    hideOv();
+
+    const slot      = SLOTS[i];
+    const isCurrent = (i === SLOTS.length - 1);
+    const mons      = slotMonths(slot.half);
+
+    document.getElementById('yearDisplay').textContent = `${HALF_LABELS[slot.half]} ${slot.year}`;
+    document.getElementById('yearSub').textContent     = isCurrent ? 'Current Period' : 'Past Period';
+
+    const badge = document.getElementById('yearBadge');
+    badge.textContent = isCurrent ? 'CURRENT' : String(slot.year);
+    badge.className   = 'year-badge' + (isCurrent ? '' : ' past');
+
+    document.getElementById('btnPrev').disabled = (i === 0);
+    document.getElementById('btnNext').disabled = (i === SLOTS.length - 1);
+
+    renderSummary(slot.year, slot.half, isCurrent);
+
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    const jobs = [];
+
+    mons.forEach((mon, pos) => {
+        const isFuture = isCurrent && mon > CM;
+        const isCurMon = isCurrent && mon === CM;
+
+        const card = document.createElement('div');
+        card.className = 'month-card';
+
+        if (isFuture) {
+            card.classList.add('fut-card');
+            card.innerHTML = `
+                <div class="card-top">
+                    <span class="mon-name">${SHORT[mon]}</span>
+                    <span style="font-size:9px;opacity:.25;letter-spacing:1px">UPCOMING</span>
+                </div>
+                <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+                    <span style="font-size:10px;opacity:.25">No data yet</span>
+                </div>
+                <div class="card-stats">
+                    <div class="stat"><div class="stat-v">—</div><div class="stat-l">hrs</div></div>
+                    <div class="stat"><div class="stat-v">—</div><div class="stat-l">peak</div></div>
+                    <div class="stat"><div class="stat-v">—</div><div class="stat-l">sess</div></div>
+                </div>`;
+        } else {
+            const wd  = weekData(slot.year, mon);
+            const tot = wd.reduce((a, b) => a + b, 0).toFixed(1);
+            const pk  = Math.max(...wd);
+            const ses = Math.floor(+tot / 1.2);
+            const cid = `c-${slot.year}-${mon}`;
+
+            if (isCurMon) card.classList.add('cur-month');
+            card.classList.add('can-hover');
+            card.innerHTML = `
+                <div class="card-top">
+                    <span class="mon-name">${SHORT[mon]}</span>
+                    <div style="text-align:right">
+                        ${isCurMon ? '<span class="cur-dot" title="Current month"></span>' : ''}
+                        <div class="mon-total">${tot}h</div>
+                        <div class="mon-lbl">${isCurMon ? 'So Far' : 'Total'}</div>
+                    </div>
+                </div>
+                <div class="chart-box"><canvas id="${cid}" width="220" height="70"></canvas></div>
+                <div class="card-stats">
+                    <div class="stat"><div class="stat-v">${tot}h</div><div class="stat-l">hrs</div></div>
+                    <div class="stat"><div class="stat-v">${pk}h</div><div class="stat-l">peak</div></div>
+                    <div class="stat"><div class="stat-v">${ses}</div><div class="stat-l">sess</div></div>
+                </div>`;
+
+            // FIX: show overlay on click (not hover) to prevent accidental dismiss
+            card.addEventListener('click', () => {
+                showOv(MONTHS[mon], slot.year, wd, +tot, pk, ses, mon);
+            });
+
+            jobs.push({ cid, wd, delay: pos * 60 });
+        }
+
+        grid.appendChild(card);
+    });
+
+    setTimeout(() => { jobs.forEach(j => miniChart(j.cid, j.wd, j.delay)); }, 0);
+}
+
+function nav(d) {
+    const n = slotIdx + d;
+    if (n < 0 || n >= SLOTS.length) return;
+    slotIdx = n;
+    render(slotIdx);
+}
+
+/* ── User init — FIX: uses correct localStorage keys matching script.js ── */
+function initUser() {
+    const currentEmail = localStorage.getItem('currentUser');
+    let name = 'Guest', streak = 0, lastDate = '';
+
+    if (currentEmail) {
+        const users = JSON.parse(localStorage.getItem('users') || '{}');
+        if (users[currentEmail]) {
+            name     = users[currentEmail].name || 'User';
+            streak   = (users[currentEmail].sessions || []).length;
+            const sessions = users[currentEmail].sessions || [];
+            if (sessions.length > 0) {
+                lastDate = sessions[sessions.length - 1].date;
+            }
+        }
+    } else {
+        // Try the handoff data from the timer page
+        const handoff = JSON.parse(localStorage.getItem('focusFlow_AnalyticsUser') || 'null');
+        if (handoff) {
+            name     = handoff.name || 'Guest';
+            streak   = handoff.streak || 0;
+            lastDate = handoff.lastDate || '';
+        }
+    }
+
+    document.getElementById('uName').textContent   = name;
+    document.getElementById('uInit').textContent   = name[0]?.toUpperCase() || 'U';
+    document.getElementById('uStreak').textContent = streak;
+    document.getElementById('uSub').textContent    = lastDate ? `Last active: ${lastDate}` : 'No sessions yet — start studying!';
+}
+
+/* ── Boot ── */
+function boot() {
+    if (typeof Chart === 'undefined') {
+        setTimeout(boot, 100);
+        return;
+    }
+    loadSessionData();
+    initUser();
+    render(slotIdx);
+}
+
+document.readyState === 'loading'
+    ? document.addEventListener('DOMContentLoaded', boot)
+    : boot();
+
+/* ── Expand overlay
+   FIX: replaced hover trigger with click; added explicit close button; backdrop click closes
+   FIX: ovChart is cleaned up in nukeCharts() when navigating
+── */
+let ovChart = null;
+let dvChart = null;
+const OV = document.getElementById('overlay');
+
+// Stores context for daily drill-down
+let _ovContext = { mon: '', yr: 0, wd: [], monIdx: 0 };
+
+/* ── Daily data per week: real sessions or demo fallback ── */
+function dailyDataForWeek(year, monIdx, weekIdx) {
+    const startDay = weekIdx * 7 + 1;
+    const daysInMonth = new Date(year, monIdx + 1, 0).getDate();
+    const numDays = Math.min(7, daysInMonth - startDay + 1);
+
+    const currentEmail = localStorage.getItem('currentUser');
+    let sessions = [];
+    if (currentEmail) {
+        const users = JSON.parse(localStorage.getItem('users') || '{}');
+        sessions = users[currentEmail]?.sessions || [];
+    } else {
+        const handoff = JSON.parse(localStorage.getItem('focusFlow_AnalyticsUser') || 'null');
+        sessions = handoff?.sessions || [];
+    }
+
+    // If real sessions exist for this month, use them
+    const hasMonthData = sessions.some(s => {
+        const d = new Date(s.date + 'T00:00:00');
+        return d.getFullYear() === year && d.getMonth() === monIdx;
+    });
+
+    if (hasMonthData) {
+        const days = Array(numDays).fill(0);
+        sessions.forEach(s => {
+            const d = new Date(s.date + 'T00:00:00');
+            if (d.getFullYear() === year && d.getMonth() === monIdx) {
+                const day = d.getDate();
+                if (day >= startDay && day < startDay + numDays) {
+                    days[day - startDay] = parseFloat((days[day - startDay] + (s.timeStudied || 0) / 3600).toFixed(2));
+                }
+            }
+        });
+        return days;
+    }
+
+    // Demo fallback: deterministic varied daily values, some rest days
+    const seed = year * 53 + monIdx * 11 + weekIdx * 3;
+    return Array.from({ length: numDays }, (_, i) => {
+        const raw = (seed * 7 + i * 19 + 5) % 29;
+        if (raw < 8) return 0; // ~2 rest days per week
+        return parseFloat(((raw % 6) + 1.5).toFixed(1)); // 1.5h to 7.5h
+    });
+}
+
+function showDailyView(weekIdx) {
+    const { mon, yr, wd, monIdx } = _ovContext;
+    const weekHours = wd[weekIdx] || 0;
+    const startDay  = weekIdx * 7 + 1;
+    const daysInMonth = new Date(yr, monIdx + 1, 0).getDate();
+    const endDay    = weekIdx === 3 ? daysInMonth : Math.min(startDay + 6, daysInMonth);
+    const dayData   = dailyDataForWeek(yr, monIdx, weekIdx);
+
+    // Day labels: Mon 1, Tue 2, etc.
+    const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const dayLabels = dayData.map((_, i) => {
+        const d = new Date(yr, monIdx, startDay + i);
+        return DAY_NAMES[d.getDay()] + ' ' + (startDay + i);
+    });
+
+    document.getElementById('dvWeekLabel').textContent = `Week ${weekIdx + 1}`;
+    document.getElementById('dvMonYear').textContent   = `${mon} ${yr}`;
+    document.getElementById('dvTotal').textContent     = weekHours.toFixed(1) + 'h';
+
+    const peakDay = Math.max(...dayData, 0);
+    const activeDays = dayData.filter(v => v > 0).length;
+    const avgDay = activeDays > 0 ? (weekHours / activeDays).toFixed(1) : '0.0';
+
+    document.getElementById('dvPeak').textContent  = peakDay.toFixed(1) + 'h';
+    document.getElementById('dvAvg').textContent   = avgDay + 'h';
+    document.getElementById('dvDays').textContent  = activeDays;
+
+    // Swap views
+    document.getElementById('weekView').style.display  = 'none';
+    document.getElementById('dailyView').style.display = 'block';
+
+    if (dvChart) { try { dvChart.destroy(); } catch(e) {} dvChart = null; }
+
+    const cv = document.getElementById('dvCanvas');
+    cv.width  = cv.parentElement.clientWidth || 540;
+    cv.height = 200;
+    const ctx = cv.getContext('2d');
+    const g   = ctx.createLinearGradient(0, 0, 0, 200);
+    g.addColorStop(0, 'rgba(255,157,0,.95)');
+    g.addColorStop(1, 'rgba(255,100,50,.25)');
+
+    dvChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: dayLabels,
+            datasets: [{
+                data: dayData,
+                backgroundColor: dayData.map(v => v > 0 ? g : 'rgba(255,255,255,.08)'),
+                borderRadius: 8, borderSkipped: false,
+                hoverBackgroundColor: 'rgba(255,255,255,.9)'
+            }]
+        },
+        options: {
+            animation: { duration: 380 },
+            responsive: false, maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { color: 'rgba(255,255,255,.4)', font: { size: 11 }, callback: v => v + 'h' }, grid: { color: 'rgba(255,255,255,.06)' }, border: { display: false } },
+                x: { ticks: { color: 'rgba(255,255,255,.55)', font: { size: 11 } }, grid: { display: false }, border: { display: false } }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(4,15,46,.92)', borderColor: 'rgba(255,157,0,.3)', borderWidth: 1,
+                    titleColor: '#ff9d00', bodyColor: 'rgba(255,255,255,.65)', padding: 12,
+                    callbacks: { label: c => `  ${c.parsed.y}h focused` }
+                }
+            }
+        }
+    });
+}
+
+function showWeekView() {
+    document.getElementById('weekView').style.display  = 'block';
+    document.getElementById('dailyView').style.display = 'none';
+    if (dvChart) { try { dvChart.destroy(); } catch(e) {} dvChart = null; }
+}
+
+function showOv(mon, yr, wd, tot, pk, ses, monIdx) {
+    // Store context for daily drill-down
+    _ovContext = { mon, yr, wd, monIdx };
+
+    document.getElementById('ovMon').textContent   = mon;
+    document.getElementById('ovYr').textContent    = String(yr);
+    document.getElementById('ovTotal').textContent = tot + 'h';
+    document.getElementById('ovPeak').textContent  = pk + 'h';
+    document.getElementById('ovAvg').textContent   = (tot / wd.length).toFixed(1) + 'h';
+    document.getElementById('ovSess').textContent  = ses;
+
+    // Reset to week view
+    document.getElementById('weekView').style.display  = 'block';
+    document.getElementById('dailyView').style.display = 'none';
+    if (dvChart) { try { dvChart.destroy(); } catch(e) {} dvChart = null; }
+
+    if (ovChart) { try { ovChart.destroy(); } catch(e) {} ovChart = null; }
+
+    const cv = document.getElementById('ovCanvas');
+    cv.width  = cv.parentElement.clientWidth || 540;
+    cv.height = 200;
+    const ctx = cv.getContext('2d');
+    const g   = ctx.createLinearGradient(0, 0, 0, 200);
+    g.addColorStop(0, 'rgba(174,242,255,.92)');
+    g.addColorStop(1, 'rgba(91,158,255,.3)');
+
+    ovChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Week 1','Week 2','Week 3','Week 4'],
+            datasets: [{ data: wd, backgroundColor: g, borderRadius: 10, borderSkipped: false, hoverBackgroundColor: 'rgba(255,255,255,.9)' }]
+        },
+        options: {
+            animation: { duration: 400 },
+            responsive: false, maintainAspectRatio: false,
+            onClick: (evt, elements) => {
+                if (elements.length > 0) {
+                    showDailyView(elements[0].index);
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { color: 'rgba(255,255,255,.4)', font: { size: 12 }, callback: v => v + 'h' }, grid: { color: 'rgba(255,255,255,.06)' }, border: { display: false } },
+                x: { ticks: { color: 'rgba(255,255,255,.55)', font: { size: 13 } }, grid: { display: false }, border: { display: false } }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(4,15,46,.92)', borderColor: 'rgba(174,242,255,.25)', borderWidth: 1,
+                    titleColor: '#aef2ff', bodyColor: 'rgba(255,255,255,.65)', padding: 12,
+                    callbacks: {
+                        label: c => `  ${c.parsed.y}h focused`,
+                        afterLabel: () => '  (click for daily view)'
+                    }
+                }
+            }
+        }
+    });
+    OV.classList.add('on');
+}
+
+function hideOv() {
+    OV.classList.remove('on');
+    showWeekView(); // reset to week view on close
+}
+
+// Close on backdrop click
+document.getElementById('ovBg').addEventListener('click', hideOv);
+
+// Close on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') hideOv(); });
+</script>
+</body>
+</html>
