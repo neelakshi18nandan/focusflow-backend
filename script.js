@@ -354,9 +354,9 @@ document.getElementById('welcomeNoBreak').onchange = function () {
 /* ========================================
    LOGIN FUNCTIONALITY
 ======================================== */
-let currentUserId = null;   // number from backend
-let currentUser = null;     // email
-let currentUsername = null; // username
+let currentUserId = null;
+let currentUser = null;
+let currentUsername = null;
 
 function openLogin() {
     document.getElementById('loginModal').style.display = "flex";
@@ -378,8 +378,7 @@ function showSignUp() {
 }
 
 /* ========================================
-   SIGN IN → POST /api/auth/login
-   Body: { username, password }
+   SIGN IN
 ======================================== */
 function handleSignIn() {
     let username = document.getElementById('loginEmail').value.trim();
@@ -416,10 +415,13 @@ function handleSignIn() {
     })
     .catch(err => {
         console.error("Sign in error:", err);
-        alert("Could not connect to server. Make sure Spring Boot is running on port 8080.");
+        alert("Could not connect to server. Please wait 60 seconds and try again (server may be waking up).");
     });
 }
 
+/* ========================================
+   LOGOUT
+======================================== */
 function handleLogout() {
     currentUserId = null;
     currentUsername = null;
@@ -438,15 +440,7 @@ function handleLogout() {
 }
 
 /* ========================================
-   FORGOT PASSWORD
-======================================== */
-function handleForgotPassword() {
-    alert("Forgot password feature coming soon!");
-}
-
-/* ========================================
-   SIGN UP → POST /api/auth/register
-   Body: { username, email, password }
+   SIGN UP
 ======================================== */
 function handleSignUp() {
     let name = document.getElementById('signupName').value.trim();
@@ -498,13 +492,12 @@ function handleSignUp() {
     })
     .catch(err => {
         console.error("Sign up error:", err);
-        alert("Could not connect to server. Make sure Spring Boot is running on port 8080.");
+        alert("Could not connect to server. Please wait 60 seconds and try again (server may be waking up).");
     });
 }
 
 /* ========================================
-   TODO LIST — localStorage only
-   (no todos endpoint in backend)
+   TODO LIST
 ======================================== */
 document.getElementById('todoInput').onkeydown = (e) => {
     if (e.key === "Enter") addTodo();
@@ -568,8 +561,28 @@ function deleteTask(taskId) {
 }
 
 /* ========================================
-   END DAY → POST /api/sessions
-   Body: { userId, plannedSec, durationSec, date }
+   SAVE SINGLE SESSION TO BACKEND
+   Called each time a pomodoro cycle completes
+======================================== */
+function saveSessionToBackend(durationSec) {
+    if (!currentUserId) return;
+    fetch(`${BASE_URL}/api/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            userId: currentUserId,
+            plannedSec: studyDuration,
+            durationSec: durationSec,
+            date: new Date().toISOString().split('T')[0]
+        })
+    })
+    .then(res => res.json())
+    .then(data => console.log("Session saved:", data))
+    .catch(err => console.error("Session save error:", err));
+}
+
+/* ========================================
+   END DAY → saves daily total to study_log
 ======================================== */
 function endTheDay() {
     if (!currentUser) {
@@ -599,20 +612,25 @@ function endTheDay() {
     let totalTasks = todos.length;
     let completedTasks = todos.filter(t => t.completed).length;
 
-    // Save session to backend
-    fetch(`${BASE_URL}/api/sessions`, {
+    // Save any remaining unsaved study time as a session
+    if (timeSpentStudying > 0) {
+        saveSessionToBackend(timeSpentStudying);
+    }
+
+    // Save daily total to study_log
+    fetch(`${BASE_URL}/api/study-log`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             userId: currentUserId,
             plannedSec: totalStudyTime,
-            durationSec: timeSpentStudying,
+            actualSec: timeSpentStudying,
             date: new Date().toISOString().split('T')[0]
         })
     })
     .then(res => res.json())
-    .then(data => console.log("Session saved to backend:", data))
-    .catch(err => console.error("Session save error:", err));
+    .then(data => console.log("Study log saved:", data))
+    .catch(err => console.error("Study log save error:", err));
 
     document.getElementById('endDayCat').src = catGif;
     document.getElementById('endDayMessage').innerText = message;
@@ -709,9 +727,13 @@ function startTimer() {
             removeCountdownToast();
 
             if (!isBreak && breakDuration > 0) {
+                // Save completed study session before break
+                saveSessionToBackend(studyDuration);
                 playAlertTone('study');
                 setTimeout(() => delayedStartBreak(getBreakDelay()), 5000);
             } else if (!isBreak && breakDuration === 0) {
+                // Save completed study session (no break mode)
+                saveSessionToBackend(studyDuration);
                 playAlertTone('study');
                 if (timeSpentStudying >= totalStudyTime) {
                     showToast("🎉 All study time completed! Amazing work!", 5000, 'study');
@@ -770,7 +792,6 @@ function resetTimer() {
 
 /* ========================================
    NAVIGATION & ANALYTICS
-   GET /api/logs/{userId}
 ======================================== */
 function handleNavigation(element) {
     const fill = document.getElementById('btnFill');
