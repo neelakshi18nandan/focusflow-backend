@@ -23,10 +23,8 @@ public class SessionService {
     @Autowired private UserRepository userRepository;
 
     /**
-     * Called when the user's timer ends OR when "End the Day" is clicked.
-     *
-     * 1. Saves the individual session row.
-     * 2. Upserts (creates or updates) the daily study_log row for that user+date.
+     * Called each time a pomodoro timer cycle completes.
+     * Saves the individual session row and upserts the daily study_log.
      */
     @Transactional
     public SessionResponse saveSession(SessionRequest req) {
@@ -35,7 +33,7 @@ public class SessionService {
 
         LocalDate date = req.getDate() != null ? req.getDate() : LocalDate.now();
 
-        // 1 — Save the individual session
+        // Save the individual session
         Session session = new Session();
         session.setUser(user);
         session.setPlannedSec(req.getPlannedSec());
@@ -43,7 +41,7 @@ public class SessionService {
         session.setDate(date);
         Session saved = sessionRepository.save(session);
 
-        // 2 — Upsert the daily study log
+        // Upsert the daily study log
         upsertStudyLog(user, date);
 
         return new SessionResponse(saved.getId(), saved.getPlannedSec(),
@@ -51,19 +49,50 @@ public class SessionService {
     }
 
     /**
+     * Called when "End the Day" is clicked OR 24hr scheduler triggers.
+     * 1. Upserts the daily study_log with final totals.
+     * 2. Deletes all session rows for that user+date (cleanup).
+     */
+    @Transactional
+    public void endDay(Long userId, LocalDate date) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        List<Session> daySessions = sessionRepository.findByUserIdAndDate(userId, date);
+
+        if (!daySessions.isEmpty()) {
+            // Calculate totals from all sessions
+            int totalActual  = daySessions.stream().mapToInt(Session::getDurationSec).sum();
+            int totalPlanned = daySessions.stream().mapToInt(Session::getPlannedSec).max().orElse(0);
+            int count        = daySessions.size();
+
+            // Upsert study_log
+            StudyLog log = studyLogRepository.findByUserIdAndDate(userId, date)
+                    .orElse(new StudyLog());
+            log.setUser(user);
+            log.setDate(date);
+            log.setPlannedSec(totalPlanned);
+            log.setActualSec(totalActual);
+            log.setSessionCount(count);
+            studyLogRepository.save(log);
+
+            // Delete all sessions for this day — data is now in study_log
+            sessionRepository.deleteAll(daySessions);
+        }
+    }
+
+    /**
      * Creates or updates the study_log row for (user, date).
      * Recalculates totals from all sessions on that day.
      */
     private void upsertStudyLog(User user, LocalDate date) {
-        // Sum actual seconds studied today
         int totalActual  = sessionRepository.sumDurationByUserAndDate(user.getId(), date);
-        // Sum planned seconds today
         List<Session> daySessions = sessionRepository.findByUserIdAndDate(user.getId(), date);
-        int totalPlanned = daySessions.stream().mapToInt(Session::getPlannedSec).sum();
+        int totalPlanned = daySessions.stream().mapToInt(Session::getPlannedSec).max().orElse(0);
         int count        = daySessions.size();
 
         StudyLog log = studyLogRepository.findByUserIdAndDate(user.getId(), date)
-                .orElse(new StudyLog()); // create new if no log exists for today
+                .orElse(new StudyLog());
 
         log.setUser(user);
         log.setDate(date);
@@ -74,7 +103,7 @@ public class SessionService {
         studyLogRepository.save(log);
     }
 
-    /** Get all sessions for a user (e.g. for a history view) */
+    /** Get all sessions for a user */
     public List<SessionResponse> getSessionsByUser(Long userId) {
         return sessionRepository.findByUserId(userId)
                 .stream()

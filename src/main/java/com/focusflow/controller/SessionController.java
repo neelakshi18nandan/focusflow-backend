@@ -7,13 +7,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Handles study sessions (timer events).
  *
- * POST /api/sessions           →  save a completed session
- * GET  /api/sessions/{userId}  →  get all sessions for a user
+ * POST /api/sessions                        → save a completed pomodoro session
+ * POST /api/sessions/end-day               → end the day: save to study_log, delete sessions
+ * GET  /api/sessions/{userId}              → get all sessions for a user
  */
 @RestController
 @RequestMapping("/api/sessions")
@@ -23,15 +26,8 @@ public class SessionController {
     private SessionService sessionService;
 
     /**
-     * Called when a focus session ends (timer complete OR user stops).
-     * Also auto-updates the daily study_log.
-     *
-     * Body: {
-     *   "userId": 1,
-     *   "plannedSec": 1500,    // e.g. 25 minutes = 1500 sec
-     *   "durationSec": 1320,   // how long they actually ran
-     *   "date": "2026-03-15"
-     * }
+     * Called when a single pomodoro cycle completes.
+     * Saves session and upserts daily study_log.
      */
     @PostMapping
     public ResponseEntity<SessionResponse> saveSession(@Valid @RequestBody SessionRequest req) {
@@ -40,7 +36,29 @@ public class SessionController {
     }
 
     /**
-     * Get all sessions for a user (optional, for a history view).
+     * Called when user clicks "End the Day" OR 24hr auto-end triggers.
+     * Saves final totals to study_log and deletes session rows.
+     *
+     * Body: { "userId": 1, "date": "2026-03-18" }
+     */
+    @PostMapping("/end-day")
+    public ResponseEntity<Map<String, Object>> endDay(@RequestBody Map<String, Object> body) {
+        Long userId = Long.valueOf(body.get("userId").toString());
+        LocalDate date = body.containsKey("date")
+                ? LocalDate.parse(body.get("date").toString())
+                : LocalDate.now();
+
+        sessionService.endDay(userId, date);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Day ended successfully",
+                "date", date.toString()
+        ));
+    }
+
+    /**
+     * Get all sessions for a user (for history view).
      */
     @GetMapping("/{userId}")
     public ResponseEntity<List<SessionResponse>> getSessions(@PathVariable Long userId) {

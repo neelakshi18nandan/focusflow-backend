@@ -618,19 +618,17 @@ function endTheDay() {
     }
 
     // Save daily total to study_log
-    fetch(`${BASE_URL}/api/study-log`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            userId: currentUserId,
-            plannedSec: totalStudyTime,
-            actualSec: timeSpentStudying,
-            date: new Date().toISOString().split('T')[0]
+    fetch(`${BASE_URL}/api/sessions/end-day`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        userId: currentUserId,
+        date: new Date().toISOString().split('T')[0]
         })
     })
     .then(res => res.json())
-    .then(data => console.log("Study log saved:", data))
-    .catch(err => console.error("Study log save error:", err));
+    .then(data => console.log("Day ended:", data))
+    .catch(err => console.error("End day error:", err));
 
     document.getElementById('endDayCat').src = catGif;
     document.getElementById('endDayMessage').innerText = message;

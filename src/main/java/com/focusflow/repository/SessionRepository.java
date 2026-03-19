@@ -1,13 +1,14 @@
 package com.focusflow.repository;
 
-import com.focusflow.model.Session;
+import java.time.LocalDate;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
-import java.util.List;
+import com.focusflow.model.Session;
 
 @Repository
 public interface SessionRepository extends JpaRepository<Session, Long> {
@@ -15,10 +16,13 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     // All sessions for a user
     List<Session> findByUserId(Long userId);
 
-    // Sessions on a specific date
+    // Sessions on a specific date for a user
     List<Session> findByUserIdAndDate(Long userId, LocalDate date);
 
-    // Sessions in a date range (used by analytics)
+    // ALL sessions on a specific date (for scheduler - across all users)
+    List<Session> findByDate(LocalDate date);
+
+    // Sessions in a date range
     List<Session> findByUserIdAndDateBetween(Long userId, LocalDate start, LocalDate end);
 
     // Total seconds studied for a user on a date
