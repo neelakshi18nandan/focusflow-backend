@@ -561,8 +561,9 @@ function deleteTask(taskId) {
 }
 
 /* ========================================
-   SAVE SINGLE SESSION TO BACKEND
-   Called each time a pomodoro cycle completes
+   SAVE SESSION TO BACKEND
+   Called each time a pomodoro cycle completes.
+   Upserts today's study_log row live (adds duration + increments session_count).
 ======================================== */
 function saveSessionToBackend(durationSec) {
     if (!currentUserId) return;
@@ -570,15 +571,19 @@ function saveSessionToBackend(durationSec) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            userId: currentUserId,
+            userId: parseInt(currentUserId),
             durationSec: durationSec,
             plannedSec: totalStudyTime || null
         })
-    }).catch(err => console.error("Session save error:", err));
+    })
+    .then(res => res.json())
+    .then(data => console.log("Session saved to study_log:", data))
+    .catch(err => console.error("Session save error:", err));
 }
 
 /* ========================================
-   END DAY → saves daily total to study_log
+   END DAY
+   Sessions already saved live — just show summary modal.
 ======================================== */
 function endTheDay() {
     if (!currentUser) {
@@ -588,7 +593,7 @@ function endTheDay() {
 
     pauseTimer();
 
-    let progressPercentage = (timeSpentStudying / totalStudyTime) * 100;
+    let progressPercentage = totalStudyTime > 0 ? (timeSpentStudying / totalStudyTime) * 100 : 0;
 
     let catGif = "sad_cat.gif";
     let message = "I missed seeing you chase your goals today, but tomorrow is still yours. One slow day doesn't define you. Do your best tomorrow!";
@@ -607,24 +612,6 @@ function endTheDay() {
     let todos = JSON.parse(localStorage.getItem("todos_" + currentUser)) || [];
     let totalTasks = todos.length;
     let completedTasks = todos.filter(t => t.completed).length;
-
-    // Save any remaining unsaved study time as a session
-    if (timeSpentStudying > 0) {
-        saveSessionToBackend(timeSpentStudying);
-    }
-
-    // Save daily total to study_log
-    fetch(`${BASE_URL}/api/sessions/end-day`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-        userId: currentUserId,
-        date: new Date().toISOString().split('T')[0]
-        })
-    })
-    .then(res => res.json())
-    .then(data => console.log("Day ended:", data))
-    .catch(err => console.error("End day error:", err));
 
     document.getElementById('endDayCat').src = catGif;
     document.getElementById('endDayMessage').innerText = message;
@@ -884,19 +871,30 @@ function initVisualizer() {
 window.addEventListener('load', initVisualizer);
 
 /* ========================================
+   KEEP SERVER AWAKE (ping every 10 mins)
+======================================== */
+setInterval(() => {
+    fetch(`${BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'ping', password: 'ping' })
+    }).catch(() => {});
+}, 600000);
+
+/* ========================================
    AUTO RESTORE LOGIN ON PAGE LOAD
 ======================================== */
 window.addEventListener('load', function () {
-    const savedUserId = localStorage.getItem("currentUserId");
+    const savedUserId   = localStorage.getItem("currentUserId");
     const savedUsername = localStorage.getItem("currentUsername");
-    const savedEmail = localStorage.getItem("currentUser");
+    const savedEmail    = localStorage.getItem("currentUser");
 
     if (savedUserId && savedUsername) {
-        currentUserId = savedUserId;
-        currentUsername = savedUsername;
-        currentUser = savedEmail;
+        currentUserId    = savedUserId;
+        currentUsername  = savedUsername;
+        currentUser      = savedEmail;
         document.getElementById('loginBtn').innerText = "👋 Hi, " + savedUsername;
-        document.getElementById('loginBtn').style.display = 'none';
+        document.getElementById('loginBtn').style.display  = 'none';
         document.getElementById('logoutBtn').style.display = 'block';
         loadTodos();
     }
