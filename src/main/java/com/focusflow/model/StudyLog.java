@@ -1,7 +1,17 @@
 package com.focusflow.model;
 
-import jakarta.persistence.*;
 import java.time.LocalDate;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
 @Table(name = "study_log",
@@ -20,8 +30,9 @@ public class StudyLog {
     @Column(nullable = false)
     private LocalDate date;
 
-    @Column(name = "planned_sec", nullable = false)
-    private int plannedSec;
+    // nullable — user may not set a daily goal
+    @Column(name = "planned_sec")
+    private Integer plannedSec;
 
     @Column(name = "actual_sec", nullable = false)
     private int actualSec;
@@ -35,8 +46,8 @@ public class StudyLog {
     public void setUser(User user) { this.user = user; }
     public LocalDate getDate() { return date; }
     public void setDate(LocalDate date) { this.date = date; }
-    public int getPlannedSec() { return plannedSec; }
-    public void setPlannedSec(int plannedSec) { this.plannedSec = plannedSec; }
+    public Integer getPlannedSec() { return plannedSec; }
+    public void setPlannedSec(Integer plannedSec) { this.plannedSec = plannedSec; }
     public int getActualSec() { return actualSec; }
     public void setActualSec(int actualSec) { this.actualSec = actualSec; }
     public int getSessionCount() { return sessionCount; }

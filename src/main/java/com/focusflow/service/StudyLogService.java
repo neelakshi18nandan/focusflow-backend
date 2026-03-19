@@ -1,14 +1,20 @@
 package com.focusflow.service;
 
-import com.focusflow.model.Dto.*;
-import com.focusflow.model.StudyLog;
-import com.focusflow.repository.StudyLogRepository;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.focusflow.model.Dto.*;
+import com.focusflow.model.Dto.AnalyticsSummary;
+import com.focusflow.model.Dto.StudyLogResponse;
+import com.focusflow.model.StudyLog;
+import com.focusflow.model.User;
+import com.focusflow.repository.StudyLogRepository;
+import com.focusflow.repository.UserRepository;
 
 @Service
 public class StudyLogService {
@@ -16,23 +22,54 @@ public class StudyLogService {
     @Autowired
     private StudyLogRepository studyLogRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
     /**
-     * Full analytics summary for a user.
-     * Returns all-time stats + daily log list for the analytics page.
+     * Called after EVERY pomodoro session completes.
+     * Upserts today's study_log row — adds durationSec and increments session_count.
+     */
+    public StudyLogResponse recordSession(Long userId, int durationSec, Integer plannedSec) {
+        LocalDate today = LocalDate.now();
+
+        Optional<StudyLog> existing = studyLogRepository.findByUserIdAndDate(userId, today);
+        StudyLog log;
+
+        if (existing.isPresent()) {
+            // Update existing row
+            log = existing.get();
+            log.setActualSec(log.getActualSec() + durationSec);
+            log.setSessionCount(log.getSessionCount() + 1);
+            if (plannedSec != null) log.setPlannedSec(plannedSec);
+        } else {
+            // Create new row for today
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            log = new StudyLog();
+            log.setUser(user);
+            log.setDate(today);
+            log.setActualSec(durationSec);
+            log.setSessionCount(1);
+            log.setPlannedSec(plannedSec);
+        }
+
+        return toResponse(studyLogRepository.save(log));
+    }
+
+    /**
+     * Full analytics summary for a user — used by analysis page.
      */
     public AnalyticsSummary getAnalytics(Long userId) {
         List<StudyLog> logs = studyLogRepository.findByUserIdOrderByDateDesc(userId);
 
-        // Map to response DTOs
         List<StudyLogResponse> logResponses = logs.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
 
-        // Totals
-        double totalHours   = logs.stream().mapToInt(StudyLog::getActualSec).sum() / 3600.0;
-        int    totalSessions= logs.stream().mapToInt(StudyLog::getSessionCount).sum();
-        double avgDaily     = logs.isEmpty() ? 0 : totalHours / logs.size();
-        int    streak       = calculateStreak(logs);
+        double totalHours    = logs.stream().mapToInt(StudyLog::getActualSec).sum() / 3600.0;
+        int    totalSessions = logs.stream().mapToInt(StudyLog::getSessionCount).sum();
+        double avgDaily      = logs.isEmpty() ? 0 : totalHours / logs.size();
+        int    streak        = calculateStreak(logs);
 
         return new AnalyticsSummary(
                 Math.round(totalHours * 10) / 10.0,
@@ -44,8 +81,7 @@ public class StudyLogService {
     }
 
     /**
-     * Logs for a specific date range (for monthly charts).
-     * e.g. GET /api/logs/{userId}?from=2026-01-01&to=2026-01-31
+     * Logs in a date range — for monthly charts.
      */
     public List<StudyLogResponse> getLogsInRange(Long userId, LocalDate from, LocalDate to) {
         return studyLogRepository
@@ -55,29 +91,22 @@ public class StudyLogService {
                 .collect(Collectors.toList());
     }
 
-    /** Convert model to DTO, adding convenience hour fields */
     private StudyLogResponse toResponse(StudyLog log) {
         StudyLogResponse r = new StudyLogResponse();
         r.setLogId(log.getLogId());
         r.setDate(log.getDate());
-        r.setPlannedSec(log.getPlannedSec());
+        r.setPlannedSec(log.getPlannedSec() != null ? log.getPlannedSec() : 0);
         r.setActualSec(log.getActualSec());
         r.setSessionCount(log.getSessionCount());
-        r.setPlannedHours(Math.round(log.getPlannedSec() / 360.0) / 10.0);
+        r.setPlannedHours(Math.round((log.getPlannedSec() != null ? log.getPlannedSec() : 0) / 360.0) / 10.0);
         r.setActualHours(Math.round(log.getActualSec() / 360.0) / 10.0);
         return r;
     }
 
-    /**
-     * Calculate current streak (consecutive days with at least 1 session).
-     * Logs are sorted newest → oldest.
-     */
     private int calculateStreak(List<StudyLog> logs) {
         if (logs.isEmpty()) return 0;
-
         int streak = 0;
         LocalDate expected = LocalDate.now();
-
         for (StudyLog log : logs) {
             if (log.getDate().equals(expected) && log.getSessionCount() > 0) {
                 streak++;
