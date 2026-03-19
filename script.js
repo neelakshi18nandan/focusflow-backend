@@ -566,19 +566,15 @@ function deleteTask(taskId) {
 ======================================== */
 function saveSessionToBackend(durationSec) {
     if (!currentUserId) return;
-    fetch(`${BASE_URL}/api/sessions`, {
+    fetch(`${BASE_URL}/api/logs/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             userId: currentUserId,
-            plannedSec: studyDuration,
             durationSec: durationSec,
-            date: new Date().toISOString().split('T')[0]
+            plannedSec: totalStudyTime || null
         })
-    })
-    .then(res => res.json())
-    .then(data => console.log("Session saved:", data))
-    .catch(err => console.error("Session save error:", err));
+    }).catch(err => console.error("Session save error:", err));
 }
 
 /* ========================================
