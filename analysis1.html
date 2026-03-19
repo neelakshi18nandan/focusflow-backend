@@ -71,6 +71,8 @@ body::before{
 .stat{text-align:center}
 .stat-v{font-size:11px;font-weight:600;color:rgba(255,255,255,.7)}
 .stat-l{font-size:8px;opacity:.28;letter-spacing:.8px;text-transform:uppercase;margin-top:1px}
+.loading-bar{text-align:center;padding:40px;opacity:.4;font-size:14px;letter-spacing:1px}
+.no-data-msg{text-align:center;padding:20px;opacity:.35;font-size:13px}
 .overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .22s}
 .overlay.on{opacity:1;pointer-events:auto}
 .ov-bg{position:absolute;inset:0;background:rgba(4,10,35,.75);backdrop-filter:blur(10px)}
@@ -101,7 +103,7 @@ body::before{
     <div class="avatar" id="uInit">G</div>
     <div>
         <p class="user-name" id="uName">Guest</p>
-        <p class="user-sub"  id="uSub">No sessions yet — start studying!</p>
+        <p class="user-sub"  id="uSub">Loading your data...</p>
     </div>
     <div class="streak-pill">
         <span style="font-size:17px">🔥</span>
@@ -128,7 +130,7 @@ body::before{
 </div>
 
 <div class="year-summary" id="yearSummary"></div>
-<div class="months-grid" id="grid"></div>
+<div class="months-grid" id="grid"><div class="loading-bar">⏳ Loading your study data...</div></div>
 
 <div class="overlay" id="overlay">
     <div class="ov-bg" id="ovBg"></div>
@@ -168,6 +170,7 @@ body::before{
 
 </div>
 <script>
+const BASE_URL    = "https://focusflow-backend-mg1p.onrender.com";
 const MONTHS      = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const SHORT       = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const HALF_LABELS = ['Jan – Jun', 'Jul – Dec'];
@@ -195,33 +198,81 @@ function slotMonths(half) {
     return half === 0 ? [0,1,2,3,4,5] : [6,7,8,9,10,11];
 }
 
-let sessionMap = {};
+// ─── Real data from backend ───────────────────────────────────────────────────
+let sessionMap = {};   // key: "YYYY-M" → [w1hrs, w2hrs, w3hrs, w4hrs]
+let dailyMap   = {};   // key: "YYYY-M-D" → hours
 
-function loadSessionData() {
-    sessionMap = {};
-    const user = JSON.parse(localStorage.getItem('focusFlow_User') || 'null');
-    if (!user || !user.logs) return;
-    user.logs.forEach(s => {
-        const d    = new Date(s.date + 'T00:00:00');
-        const key  = `${d.getFullYear()}-${d.getMonth() + 1}`;
-        const hrs  = (s.durationSec || 0) / 3600;
-        const week = Math.min(Math.floor((d.getDate() - 1) / 7), 3);
-        if (!sessionMap[key]) sessionMap[key] = [0, 0, 0, 0];
-        sessionMap[key][week] = parseFloat((sessionMap[key][week] + hrs).toFixed(2));
-    });
+async function fetchAndBuildMaps() {
+    const userId = localStorage.getItem('currentUserId');
+    if (!userId) return;
+    try {
+        const res  = await fetch(`${BASE_URL}/api/logs/${userId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // data.logs is an array of { date: "YYYY-MM-DD", actualSec: number }
+        const logs = data.logs || [];
+
+        // Update streak in user bar
+        if (data.streak !== undefined) {
+            document.getElementById('uStreak').textContent = data.streak;
+        }
+        if (data.lastDate) {
+            document.getElementById('uSub').textContent = `Last active: ${data.lastDate}`;
+        } else {
+            document.getElementById('uSub').textContent = logs.length > 0
+                ? `${logs.length} study days recorded`
+                : 'No sessions yet — start studying!';
+        }
+
+        // Build sessionMap (weekly buckets) and dailyMap
+        sessionMap = {};
+        dailyMap   = {};
+
+        logs.forEach(entry => {
+            const d    = new Date(entry.date + 'T00:00:00');
+            const y    = d.getFullYear();
+            const m    = d.getMonth();
+            const day  = d.getDate();
+            const hrs  = parseFloat(((entry.actualSec || 0) / 3600).toFixed(2));
+            const week = Math.min(Math.floor((day - 1) / 7), 3);
+
+            const mKey = `${y}-${m + 1}`;
+            if (!sessionMap[mKey]) sessionMap[mKey] = [0, 0, 0, 0];
+            sessionMap[mKey][week] = parseFloat((sessionMap[mKey][week] + hrs).toFixed(2));
+
+            const dKey = `${y}-${m + 1}-${day}`;
+            dailyMap[dKey] = parseFloat(((dailyMap[dKey] || 0) + hrs).toFixed(2));
+        });
+
+    } catch(e) {
+        console.error("Failed to fetch analytics:", e);
+        document.getElementById('uSub').textContent = 'Could not load data — server may be waking up';
+    }
 }
 
 function weekData(year, mon) {
     const key = `${year}-${mon + 1}`;
-    if (sessionMap[key]) return sessionMap[key];
-    const seed = year * 31 + mon * 7;
-    return [0,1,2,3].map(w => {
-        const raw = ((seed * 13 + w * 17 + 3) % 22) + 3;
-        return parseFloat(raw.toFixed(1));
-    });
+    // Return real data if available, otherwise zeros (no fake data)
+    return sessionMap[key] ? sessionMap[key] : [0, 0, 0, 0];
 }
 
+function dailyDataForWeek(year, monIdx, weekIdx) {
+    const startDay    = weekIdx * 7 + 1;
+    const daysInMonth = new Date(year, monIdx + 1, 0).getDate();
+    const numDays     = Math.min(7, daysInMonth - startDay + 1);
+    const days        = Array(numDays).fill(0);
+    for (let i = 0; i < numDays; i++) {
+        const dKey = `${year}-${monIdx + 1}-${startDay + i}`;
+        days[i] = dailyMap[dKey] || 0;
+    }
+    return days;
+}
+
+// ─── Charts ───────────────────────────────────────────────────────────────────
 const charts = {};
+let ovChart = null;
+let dvChart = null;
 
 function nukeCharts() {
     Object.values(charts).forEach(c => { try { c.destroy(); } catch(e) {} });
@@ -262,6 +313,7 @@ function miniChart(id, data, delay) {
     });
 }
 
+// ─── Render ───────────────────────────────────────────────────────────────────
 function renderSummary(year, half, isCurrent) {
     const mons        = slotMonths(half);
     const endMon      = isCurrent ? CM : mons[mons.length - 1];
@@ -327,12 +379,13 @@ function render(i) {
             const cid = `c-${slot.year}-${mon}`;
             if (isCurMon) card.classList.add('cur-month');
             card.classList.add('can-hover');
+            const hasData = +tot > 0;
             card.innerHTML = `
                 <div class="card-top">
                     <span class="mon-name">${SHORT[mon]}</span>
                     <div style="text-align:right">
                         ${isCurMon ? '<span class="cur-dot" title="Current month"></span>' : ''}
-                        <div class="mon-total">${tot}h</div>
+                        <div class="mon-total">${hasData ? tot + 'h' : '0h'}</div>
                         <div class="mon-lbl">${isCurMon ? 'So Far' : 'Total'}</div>
                     </div>
                 </div>
@@ -341,7 +394,8 @@ function render(i) {
                     <div class="stat"><div class="stat-v">${tot}h</div><div class="stat-l">hrs</div></div>
                     <div class="stat"><div class="stat-v">${pk}h</div><div class="stat-l">peak</div></div>
                     <div class="stat"><div class="stat-v">${ses}</div><div class="stat-l">sess</div></div>
-                </div>`;
+                </div>
+                ${!hasData ? '<div class="no-data-msg">No study sessions yet</div>' : ''}`;
             card.addEventListener('click', () => showOv(MONTHS[mon], slot.year, wd, +tot, pk, ses, mon));
             jobs.push({ cid, wd, delay: pos * 60 });
         }
@@ -358,62 +412,25 @@ function nav(d) {
 }
 
 function initUser() {
-    const savedUsername = localStorage.getItem('currentUsername');
-    const user = JSON.parse(localStorage.getItem('focusFlow_User') || 'null');
-    const name     = savedUsername || user?.name || 'Guest';
-    const streak   = user?.streak || 0;
-    const lastDate = user?.lastDate || '';
-    document.getElementById('uName').textContent   = name;
-    document.getElementById('uInit').textContent   = name[0]?.toUpperCase() || 'G';
-    document.getElementById('uStreak').textContent = streak;
-    document.getElementById('uSub').textContent    = lastDate ? `Last active: ${lastDate}` : 'No sessions yet — start studying!';
+    const name = localStorage.getItem('currentUsername') || 'Guest';
+    document.getElementById('uName').textContent = name;
+    document.getElementById('uInit').textContent = name[0]?.toUpperCase() || 'G';
 }
 
-function boot() {
+async function boot() {
     if (typeof Chart === 'undefined') { setTimeout(boot, 100); return; }
-    loadSessionData();
     initUser();
+    await fetchAndBuildMaps();  // fetch real data from backend first
     render(slotIdx);
 }
+
 document.readyState === 'loading'
     ? document.addEventListener('DOMContentLoaded', boot)
     : boot();
 
-let ovChart = null;
-let dvChart = null;
+// ─── Overlay ──────────────────────────────────────────────────────────────────
 const OV = document.getElementById('overlay');
 let _ovContext = { mon: '', yr: 0, wd: [], monIdx: 0 };
-
-function dailyDataForWeek(year, monIdx, weekIdx) {
-    const startDay    = weekIdx * 7 + 1;
-    const daysInMonth = new Date(year, monIdx + 1, 0).getDate();
-    const numDays     = Math.min(7, daysInMonth - startDay + 1);
-    const user        = JSON.parse(localStorage.getItem('focusFlow_User') || 'null');
-    const sessions    = user?.logs || [];
-    const hasMonthData = sessions.some(s => {
-        const d = new Date(s.date + 'T00:00:00');
-        return d.getFullYear() === year && d.getMonth() === monIdx;
-    });
-    if (hasMonthData) {
-        const days = Array(numDays).fill(0);
-        sessions.forEach(s => {
-            const d = new Date(s.date + 'T00:00:00');
-            if (d.getFullYear() === year && d.getMonth() === monIdx) {
-                const day = d.getDate();
-                if (day >= startDay && day < startDay + numDays) {
-                    days[day - startDay] = parseFloat((days[day - startDay] + (s.durationSec || 0) / 3600).toFixed(2));
-                }
-            }
-        });
-        return days;
-    }
-    const seed = year * 53 + monIdx * 11 + weekIdx * 3;
-    return Array.from({ length: numDays }, (_, i) => {
-        const raw = (seed * 7 + i * 19 + 5) % 29;
-        if (raw < 8) return 0;
-        return parseFloat(((raw % 6) + 1.5).toFixed(1));
-    });
-}
 
 function showDailyView(weekIdx) {
     const { mon, yr, wd, monIdx } = _ovContext;
