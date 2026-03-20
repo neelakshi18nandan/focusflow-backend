@@ -36,13 +36,11 @@ public class StudyLogService {
         StudyLog log;
 
         if (existing.isPresent()) {
-            // Update existing row
             log = existing.get();
             log.setActualSec(log.getActualSec() + durationSec);
             log.setSessionCount(log.getSessionCount() + 1);
             if (plannedSec != null) log.setPlannedSec(plannedSec);
         } else {
-            // Create new row for today
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
             log = new StudyLog();
@@ -105,8 +103,19 @@ public class StudyLogService {
 
     private int calculateStreak(List<StudyLog> logs) {
         if (logs.isEmpty()) return 0;
+
+        // Start from today OR yesterday — whichever has a log entry first
+        // This way streak isn't broken just because today's session hasn't happened yet
+        LocalDate today = LocalDate.now();
+        LocalDate mostRecentLogDate = logs.get(0).getDate();
+
+        // If last log is older than yesterday, streak is broken
+        if (mostRecentLogDate.isBefore(today.minusDays(1))) return 0;
+
+        // Start counting from the most recent log date
         int streak = 0;
-        LocalDate expected = LocalDate.now();
+        LocalDate expected = mostRecentLogDate;
+
         for (StudyLog log : logs) {
             if (log.getDate().equals(expected) && log.getSessionCount() > 0) {
                 streak++;
@@ -115,6 +124,7 @@ public class StudyLogService {
                 break;
             }
         }
+
         return streak;
     }
 }
