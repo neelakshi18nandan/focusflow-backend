@@ -304,6 +304,7 @@ function setCustomDuration() {
     isBreak = false;
     timeSpentStudying = 0;
     updateTimer();
+    clearTimerState(); // clear saved state when new duration is set
     closeDurationModal();
 }
 
@@ -340,6 +341,7 @@ function setWelcomeGoal() {
     isBreak = false;
     timeSpentStudying = 0;
     updateTimer();
+    clearTimerState(); // clear saved state when new goal is set
 
     document.getElementById('welcomeModal').style.display = "none";
     document.getElementById('welcomeSection').style.display = 'block';
@@ -430,6 +432,7 @@ function handleLogout() {
     localStorage.removeItem("currentUsername");
     localStorage.removeItem("currentUser");
     localStorage.removeItem("focusFlow_User");
+    clearTimerState(); // clear timer state on logout
 
     document.getElementById('loginBtn').style.display = 'block';
     document.getElementById('loginBtn').innerText = "🔐 Sign In";
@@ -562,8 +565,6 @@ function deleteTask(taskId) {
 
 /* ========================================
    SAVE SESSION TO BACKEND
-   Called each time a pomodoro cycle completes.
-   Upserts today's study_log row live (adds duration + increments session_count).
 ======================================== */
 function saveSessionToBackend(durationSec) {
     if (!currentUserId) return;
@@ -582,8 +583,68 @@ function saveSessionToBackend(durationSec) {
 }
 
 /* ========================================
+   TIMER STATE PERSISTENCE
+   Saves/restores timer across page navigation
+======================================== */
+function saveTimerState() {
+    localStorage.setItem('timerState', JSON.stringify({
+        time: time,
+        isRunning: isRunning,
+        isBreak: isBreak,
+        timeSpentStudying: timeSpentStudying,
+        studyDuration: studyDuration,
+        breakDuration: breakDuration,
+        totalStudyTime: totalStudyTime,
+        initialTime: initialTime,
+        savedAt: Date.now()
+    }));
+}
+
+function restoreTimerState() {
+    const saved = localStorage.getItem('timerState');
+    if (!saved) return false;
+
+    try {
+        const state = JSON.parse(saved);
+
+        // Adjust time for seconds elapsed while away (only if was running)
+        let adjustedTime = state.time;
+        if (state.isRunning) {
+            const secondsElapsed = Math.floor((Date.now() - state.savedAt) / 1000);
+            adjustedTime = Math.max(0, state.time - secondsElapsed);
+        }
+
+        // Restore all timer variables
+        time             = adjustedTime;
+        isBreak          = state.isBreak;
+        timeSpentStudying = state.isRunning
+            ? state.timeSpentStudying + Math.floor((Date.now() - state.savedAt) / 1000)
+            : state.timeSpentStudying;
+        studyDuration    = state.studyDuration;
+        breakDuration    = state.breakDuration;
+        totalStudyTime   = state.totalStudyTime;
+        initialTime      = state.initialTime;
+
+        updateTimer();
+
+        // Resume if it was running
+        if (state.isRunning && adjustedTime > 0) {
+            startTimer();
+        }
+
+        return true;
+    } catch (e) {
+        console.error("Failed to restore timer state:", e);
+        return false;
+    }
+}
+
+function clearTimerState() {
+    localStorage.removeItem('timerState');
+}
+
+/* ========================================
    END DAY
-   Sessions already saved live — just show summary modal.
 ======================================== */
 function endTheDay() {
     if (!currentUser) {
@@ -592,6 +653,7 @@ function endTheDay() {
     }
 
     pauseTimer();
+    clearTimerState(); // clear saved state on end day
 
     let progressPercentage = totalStudyTime > 0 ? (timeSpentStudying / totalStudyTime) * 100 : 0;
 
@@ -690,6 +752,9 @@ function startTimer() {
             lastSecond = time;
             if (!half && time <= initialTime / 2) half = true;
 
+            // Save timer state every second
+            saveTimerState();
+
             if (!isBreak && breakDuration > 0 && time > 0 && time <= WARNING_SECONDS) {
                 showCountdownToast(`⏳ Break starts in ${time} second${time === 1 ? '' : 's'}...`, 'warning');
             }
@@ -708,12 +773,10 @@ function startTimer() {
             removeCountdownToast();
 
             if (!isBreak && breakDuration > 0) {
-                // Save completed study session before break
                 saveSessionToBackend(studyDuration);
                 playAlertTone('study');
                 setTimeout(() => delayedStartBreak(getBreakDelay()), 5000);
             } else if (!isBreak && breakDuration === 0) {
-                // Save completed study session (no break mode)
                 saveSessionToBackend(studyDuration);
                 playAlertTone('study');
                 if (timeSpentStudying >= totalStudyTime) {
@@ -757,6 +820,7 @@ function pauseTimer() {
     isRunning = false;
     document.getElementById('playPauseBtn').innerHTML = "▶";
     removeCountdownToast();
+    saveTimerState(); // save paused state too
 }
 
 function resetTimer() {
@@ -769,6 +833,7 @@ function resetTimer() {
     half = false;
     removeCountdownToast();
     removeBreakDelayToast();
+    clearTimerState(); // clear on reset
 }
 
 /* ========================================
@@ -882,7 +947,7 @@ setInterval(() => {
 }, 600000);
 
 /* ========================================
-   AUTO RESTORE LOGIN ON PAGE LOAD
+   AUTO RESTORE LOGIN & TIMER STATE ON PAGE LOAD
 ======================================== */
 window.addEventListener('load', function () {
     const savedUserId   = localStorage.getItem("currentUserId");
@@ -897,5 +962,12 @@ window.addEventListener('load', function () {
         document.getElementById('loginBtn').style.display  = 'none';
         document.getElementById('logoutBtn').style.display = 'block';
         loadTodos();
+
+        // Restore timer state — only if user is logged in
+        const restored = restoreTimerState();
+        if (!restored) {
+            // No saved state — show welcome modal as normal
+            // (welcomeModal is shown by default in HTML)
+        }
     }
 });
