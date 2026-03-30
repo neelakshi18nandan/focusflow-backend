@@ -1,6 +1,7 @@
 package com.focusflow.model;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,16 +12,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "study_log", uniqueConstraints = @UniqueConstraint(columnNames = { "user_id", "date" }))
-public class StudyLog {
+@Table(name = "sessions")
+public class Sessions {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "log_id")
-    private Long logId;
+    @Column(name = "session_id")
+    private Long sessionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -29,27 +29,25 @@ public class StudyLog {
     @Column(nullable = false)
     private LocalDate date;
 
-    @Column(name = "planned_sec")
-    private Integer plannedSec;
-
     @Column(name = "actual_sec", nullable = false)
     private int actualSec;
 
-    // session_count = number of sessions rows for this user+date
-    // computed dynamically in service, not stored here anymore
-    @Column(name = "session_count", nullable = false)
-    private int sessionCount;
+    @Column(name = "planned_sec")
+    private Integer plannedSec;
 
-    public Long getLogId() { return logId; }
-    public void setLogId(Long logId) { this.logId = logId; }
+    @Column(name = "logged_at")
+    private LocalDateTime loggedAt;
+
+    public Long getSessionId() { return sessionId; }
+    public void setSessionId(Long sessionId) { this.sessionId = sessionId; }
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
     public LocalDate getDate() { return date; }
     public void setDate(LocalDate date) { this.date = date; }
-    public Integer getPlannedSec() { return plannedSec; }
-    public void setPlannedSec(Integer plannedSec) { this.plannedSec = plannedSec; }
     public int getActualSec() { return actualSec; }
     public void setActualSec(int actualSec) { this.actualSec = actualSec; }
-    public int getSessionCount() { return sessionCount; }
-    public void setSessionCount(int sessionCount) { this.sessionCount = sessionCount; }
+    public Integer getPlannedSec() { return plannedSec; }
+    public void setPlannedSec(Integer plannedSec) { this.plannedSec = plannedSec; }
+    public LocalDateTime getLoggedAt() { return loggedAt; }
+    public void setLoggedAt(LocalDateTime loggedAt) { this.loggedAt = loggedAt; }
 }

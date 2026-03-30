@@ -22,7 +22,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Long id;
-    
+
     @NotBlank
     @Column(unique = true, nullable = false, length = 50)
     private String username;
@@ -39,6 +39,9 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<StudyLog> studyLogs;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Sessions> sessions;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getUsername() { return username; }
@@ -49,4 +52,6 @@ public class User {
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public List<StudyLog> getStudyLogs() { return studyLogs; }
     public void setStudyLogs(List<StudyLog> studyLogs) { this.studyLogs = studyLogs; }
+    public List<Sessions> getSessions() { return sessions; }
+    public void setSessions(List<Sessions> sessions) { this.sessions = sessions; }
 }

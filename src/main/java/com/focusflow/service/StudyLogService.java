@@ -1,53 +1,69 @@
 package com.focusflow.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.focusflow.model.Dto.*;
-import com.focusflow.model.Dto.AnalyticsSummary;
-import com.focusflow.model.Dto.StudyLogResponse;
+import com.focusflow.model.Sessions;
 import com.focusflow.model.StudyLog;
 import com.focusflow.model.User;
+import com.focusflow.repository.SessionsRepository;
 import com.focusflow.repository.StudyLogRepository;
 import com.focusflow.repository.UserRepository;
 
 @Service
 public class StudyLogService {
 
-    @Autowired
-    private StudyLogRepository studyLogRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private StudyLogRepository studyLogRepository;
+    @Autowired private SessionsRepository sessionsRepository;
+    @Autowired private UserRepository userRepository;
 
     /**
-     * Called after EVERY pomodoro session completes.
-     * Upserts today's study_log row — adds durationSec and increments session_count.
+     * Called after EVERY pomodoro completes.
+     * 1. Inserts a new row into sessions (individual pomodoro record)
+     * 2. Upserts study_log for today (daily aggregate)
      */
+    @Transactional
     public StudyLogResponse recordSession(Long userId, int durationSec, Integer plannedSec) {
         LocalDate today = LocalDate.now();
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // ── Step 1: Insert into sessions (one row per pomodoro) ──
+        Sessions session = new Sessions();
+        session.setUser(user);
+        session.setDate(today);
+        session.setActualSec(durationSec);
+        session.setPlannedSec(plannedSec);
+        session.setLoggedAt(LocalDateTime.now());
+        sessionsRepository.save(session);
+
+        // ── Step 2: Upsert study_log (daily aggregate) ──
         Optional<StudyLog> existing = studyLogRepository.findByUserIdAndDate(userId, today);
         StudyLog log;
+
+        // Count sessions for today to update session_count
+        int todaySessionCount = sessionsRepository.findByUserIdAndDate(userId, today).size();
 
         if (existing.isPresent()) {
             log = existing.get();
             log.setActualSec(log.getActualSec() + durationSec);
-            log.setSessionCount(log.getSessionCount() + 1);
+            log.setSessionCount(todaySessionCount);
             if (plannedSec != null) log.setPlannedSec(plannedSec);
         } else {
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
             log = new StudyLog();
             log.setUser(user);
             log.setDate(today);
             log.setActualSec(durationSec);
-            log.setSessionCount(1);
+            log.setSessionCount(todaySessionCount);
             log.setPlannedSec(plannedSec);
         }
 
@@ -55,7 +71,7 @@ public class StudyLogService {
     }
 
     /**
-     * Full analytics summary for a user — used by analysis page.
+     * Full analytics summary — used by analysis page.
      */
     public AnalyticsSummary getAnalytics(Long userId) {
         List<StudyLog> logs = studyLogRepository.findByUserIdOrderByDateDesc(userId);
@@ -104,15 +120,11 @@ public class StudyLogService {
     private int calculateStreak(List<StudyLog> logs) {
         if (logs.isEmpty()) return 0;
 
-        // Start from today OR yesterday — whichever has a log entry first
-        // This way streak isn't broken just because today's session hasn't happened yet
         LocalDate today = LocalDate.now();
         LocalDate mostRecentLogDate = logs.get(0).getDate();
 
-        // If last log is older than yesterday, streak is broken
         if (mostRecentLogDate.isBefore(today.minusDays(1))) return 0;
 
-        // Start counting from the most recent log date
         int streak = 0;
         LocalDate expected = mostRecentLogDate;
 
@@ -124,7 +136,6 @@ public class StudyLogService {
                 break;
             }
         }
-
         return streak;
     }
 }

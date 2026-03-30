@@ -1,10 +1,11 @@
 package com.focusflow.model;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Min;
 import java.time.LocalDate;
 import java.util.List;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 
 public class Dto {
 
@@ -136,15 +137,28 @@ public class Dto {
             this.totalHours = totalHours; this.totalSessions = totalSessions;
             this.streakDays = streakDays; this.avgDailyHours = avgDailyHours; this.logs = logs;
         }
-        public double getTotalHours() { return totalHours; }
-        public void setTotalHours(double totalHours) { this.totalHours = totalHours; }
-        public int getTotalSessions() { return totalSessions; }
-        public void setTotalSessions(int totalSessions) { this.totalSessions = totalSessions; }
+        
         public int getStreakDays() { return streakDays; }
         public void setStreakDays(int streakDays) { this.streakDays = streakDays; }
         public double getAvgDailyHours() { return avgDailyHours; }
         public void setAvgDailyHours(double avgDailyHours) { this.avgDailyHours = avgDailyHours; }
         public List<StudyLogResponse> getLogs() { return logs; }
         public void setLogs(List<StudyLogResponse> logs) { this.logs = logs; }
+
+        public double getTotalHours() {
+            return totalHours;
+        }
+
+        public void setTotalHours(double totalHours) {
+            this.totalHours = totalHours;
+        }
+
+        public int getTotalSessions() {
+            return totalSessions;
+        }
+
+        public void setTotalSessions(int totalSessions) {
+            this.totalSessions = totalSessions;
+        }
     }
 }
