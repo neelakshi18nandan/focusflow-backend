@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
 public class Dto {
@@ -34,20 +33,28 @@ public class Dto {
         public void setPassword(String password) { this.password = password; }
     }
 
+    // FIXED: Restored full 5-arg constructor + isSuccess() that UserService/AuthController use
     public static class AuthResponse {
         private Long userId;
         private String username;
         private String email;
+        private String message;
+        private boolean success;
 
-        public AuthResponse(Long userId, String username, String email) {
-            this.userId = userId;
+        public AuthResponse(Long userId, String username, String email,
+                            String message, boolean success) {
+            this.userId   = userId;
             this.username = username;
-            this.email = email;
+            this.email    = email;
+            this.message  = message;
+            this.success  = success;
         }
 
-        public Long getUserId() { return userId; }
-        public String getUsername() { return username; }
-        public String getEmail() { return email; }
+        public Long getUserId()        { return userId; }
+        public String getUsername()    { return username; }
+        public String getEmail()       { return email; }
+        public String getMessage()     { return message; }
+        public boolean isSuccess()     { return success; }  // used by AuthController
     }
 
     // ── Session / StudyLog ────────────────────────────────────────────────────
@@ -57,12 +64,12 @@ public class Dto {
         private int durationSec;
         private int plannedSec;
 
-        public Long getUserId() { return userId; }
+        public Long getUserId()            { return userId; }
         public void setUserId(Long userId) { this.userId = userId; }
-        public int getDurationSec() { return durationSec; }
-        public void setDurationSec(int durationSec) { this.durationSec = durationSec; }
-        public int getPlannedSec() { return plannedSec; }
-        public void setPlannedSec(int plannedSec) { this.plannedSec = plannedSec; }
+        public int getDurationSec()        { return durationSec; }
+        public void setDurationSec(int d)  { this.durationSec = d; }
+        public int getPlannedSec()         { return plannedSec; }
+        public void setPlannedSec(int p)   { this.plannedSec = p; }
     }
 
     public static class StudyLogResponse {
@@ -72,18 +79,19 @@ public class Dto {
         private int plannedSec;
         private int sessionCount;
 
-        public StudyLogResponse(Long id, LocalDate date, int actualSec, int plannedSec, int sessionCount) {
-            this.id = id;
-            this.date = date;
-            this.actualSec = actualSec;
-            this.plannedSec = plannedSec;
+        public StudyLogResponse(Long id, LocalDate date, int actualSec,
+                                int plannedSec, int sessionCount) {
+            this.id           = id;
+            this.date         = date;
+            this.actualSec    = actualSec;
+            this.plannedSec   = plannedSec;
             this.sessionCount = sessionCount;
         }
 
-        public Long getId() { return id; }
-        public LocalDate getDate() { return date; }
-        public int getActualSec() { return actualSec; }
-        public int getPlannedSec() { return plannedSec; }
+        public Long getId()          { return id; }
+        public LocalDate getDate()   { return date; }
+        public int getActualSec()    { return actualSec; }
+        public int getPlannedSec()   { return plannedSec; }
         public int getSessionCount() { return sessionCount; }
     }
 
@@ -92,24 +100,24 @@ public class Dto {
     public static class AnalyticsSummary {
         private double totalHours;
         private int totalSessions;
-        private int streak;           // FIXED: was "streakDays", frontend expects "streak"
+        private int streak;          // FIXED: was "streakDays" — frontend expects "streak"
         private double avgDailyHours;
         private List<StudyLogResponse> logs;
 
         public AnalyticsSummary(double totalHours, int totalSessions, int streak,
                                 double avgDailyHours, List<StudyLogResponse> logs) {
-            this.totalHours = totalHours;
+            this.totalHours    = totalHours;
             this.totalSessions = totalSessions;
-            this.streak = streak;     // FIXED
+            this.streak        = streak;
             this.avgDailyHours = avgDailyHours;
-            this.logs = logs;
+            this.logs          = logs;
         }
 
-        public double getTotalHours() { return totalHours; }
-        public int getTotalSessions() { return totalSessions; }
-        public int getStreak() { return streak; }           // FIXED: was getStreakDays()
-        public void setStreak(int streak) { this.streak = streak; } // FIXED
-        public double getAvgDailyHours() { return avgDailyHours; }
+        public double getTotalHours()           { return totalHours; }
+        public int getTotalSessions()           { return totalSessions; }
+        public int getStreak()                  { return streak; }       // FIXED: was getStreakDays()
+        public void setStreak(int streak)       { this.streak = streak; }
+        public double getAvgDailyHours()        { return avgDailyHours; }
         public List<StudyLogResponse> getLogs() { return logs; }
     }
 }
