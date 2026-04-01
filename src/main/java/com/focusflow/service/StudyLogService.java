@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.focusflow.model.Dto.*;
+import com.focusflow.model.Dto.AnalyticsSummary;
+import com.focusflow.model.Dto.StudyLogResponse;
 import com.focusflow.model.Sessions;
 import com.focusflow.model.StudyLog;
 import com.focusflow.model.User;
@@ -47,11 +49,11 @@ public class StudyLogService {
         sessionsRepository.save(session);
 
         // ── Step 2: Upsert study_log (daily aggregate) ──
-        Optional<StudyLog> existing = studyLogRepository.findByUserIdAndDate(userId, today);
+        Optional<StudyLog> existing = studyLogRepository.findByUser_IdAndDate(userId, today);  // FIXED
         StudyLog log;
 
         // Count sessions for today to update session_count
-        int todaySessionCount = sessionsRepository.findByUserIdAndDate(userId, today).size();
+        int todaySessionCount = sessionsRepository.findByUser_IdAndDate(userId, today).size();  // FIXED
 
         if (existing.isPresent()) {
             log = existing.get();
@@ -74,7 +76,7 @@ public class StudyLogService {
      * Full analytics summary — used by analysis page.
      */
     public AnalyticsSummary getAnalytics(Long userId) {
-        List<StudyLog> logs = studyLogRepository.findByUserIdOrderByDateDesc(userId);
+        List<StudyLog> logs = studyLogRepository.findByUser_IdOrderByDateDesc(userId);  // FIXED
 
         List<StudyLogResponse> logResponses = logs.stream()
                 .map(this::toResponse)
@@ -99,7 +101,7 @@ public class StudyLogService {
      */
     public List<StudyLogResponse> getLogsInRange(Long userId, LocalDate from, LocalDate to) {
         return studyLogRepository
-                .findByUserIdAndDateBetweenOrderByDate(userId, from, to)
+                .findByUser_IdAndDateBetweenOrderByDate(userId, from, to)  // FIXED
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
