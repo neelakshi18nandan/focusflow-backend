@@ -10,6 +10,6 @@ import com.focusflow.model.Sessions;
 
 @Repository
 public interface SessionsRepository extends JpaRepository<Sessions, Long> {
-    List<Sessions> findByUserIdOrderByLoggedAtDesc(Long userId);
-    List<Sessions> findByUserIdAndDate(Long userId, LocalDate date);
+    List<Sessions> findByUser_IdOrderByLoggedAtDesc(Long userId);
+    List<Sessions> findByUser_IdAndDate(Long userId, LocalDate date);
 }

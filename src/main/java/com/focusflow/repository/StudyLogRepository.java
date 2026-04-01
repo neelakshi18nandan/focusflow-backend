@@ -11,13 +11,7 @@ import com.focusflow.model.StudyLog;
 
 @Repository
 public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
-
-    // For analytics page — all logs newest first
-    List<StudyLog> findByUserIdOrderByDateDesc(Long userId);
-
-    // For monthly charts
-    List<StudyLog> findByUserIdAndDateBetweenOrderByDate(Long userId, LocalDate from, LocalDate to);
-
-    // For upsert — find today's row
-    Optional<StudyLog> findByUserIdAndDate(Long userId, LocalDate date);
+    List<StudyLog> findByUser_IdOrderByDateDesc(Long userId);
+    List<StudyLog> findByUser_IdAndDateBetweenOrderByDate(Long userId, LocalDate from, LocalDate to);
+    Optional<StudyLog> findByUser_IdAndDate(Long userId, LocalDate date);
 }
