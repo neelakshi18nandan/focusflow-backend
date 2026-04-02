@@ -290,13 +290,17 @@ function closeDurationModal() {
 }
 
 function setCustomDuration() {
-    let hours = parseFloat(document.getElementById('totalHours').value) || 2;
-    let study = parseInt(document.getElementById('studyTime').value) || 25;
+    let totalHours = parseFloat(document.getElementById('totalHours').value) || 0;
+    let studyH = parseInt(document.getElementById('studyHours').value) || 0;
+    let studyM = parseInt(document.getElementById('studyMins').value) || 25;
+    let study = studyH * 60 + studyM;
+    if (study <= 0) study = 25;
     let breakMin = parseInt(document.getElementById('breakTime').value) || 0;
     let hasBreak = !document.getElementById('noBreak').checked && breakMin > 0;
 
     pauseTimer();
-    totalStudyTime = hours * 3600;
+    // If no total goal set, default to the study session length
+    totalStudyTime = totalHours > 0 ? totalHours * 3600 : study * 60;
     studyDuration = study * 60;
     breakDuration = hasBreak ? breakMin * 60 : 0;
     time = studyDuration;
@@ -304,7 +308,6 @@ function setCustomDuration() {
     isBreak = false;
     timeSpentStudying = 0;
     updateTimer();
-    clearTimerState(); // clear saved state when new duration is set
     closeDurationModal();
 }
 
@@ -326,14 +329,23 @@ function showWelcomeSection() {
     document.getElementById('welcomeSection').style.display = 'block';
 }
 
+function closeWelcomeModal() {
+    document.getElementById('welcomeModal').style.display = 'none';
+    document.getElementById('welcomeSection').style.display = 'block';
+    document.getElementById('goalFormSection').style.display = 'none';
+}
+
 function setWelcomeGoal() {
-    let hours = parseFloat(document.getElementById('welcomeTotalHours').value) || 2;
-    let study = parseInt(document.getElementById('welcomeStudyTime').value) || 25;
+    let totalHours = parseFloat(document.getElementById('welcomeTotalHours').value) || 0;
+    let studyH = parseInt(document.getElementById('welcomeStudyHours').value) || 0;
+    let studyM = parseInt(document.getElementById('welcomeStudyMins').value) || 25;
+    let study = studyH * 60 + studyM;
+    if (study <= 0) study = 25;
     let breakMin = parseInt(document.getElementById('welcomeBreakTime').value) || 0;
     let hasBreak = !document.getElementById('welcomeNoBreak').checked && breakMin > 0;
 
     pauseTimer();
-    totalStudyTime = hours * 3600;
+    totalStudyTime = totalHours > 0 ? totalHours * 3600 : study * 60;
     studyDuration = study * 60;
     breakDuration = hasBreak ? breakMin * 60 : 0;
     time = studyDuration;
@@ -341,9 +353,8 @@ function setWelcomeGoal() {
     isBreak = false;
     timeSpentStudying = 0;
     updateTimer();
-    clearTimerState(); // clear saved state when new goal is set
 
-    document.getElementById('welcomeModal').style.display = "none";
+    document.getElementById('welcomeModal').style.display = 'none';
     document.getElementById('welcomeSection').style.display = 'block';
     document.getElementById('goalFormSection').style.display = 'none';
 }
@@ -422,6 +433,24 @@ function handleSignIn() {
 }
 
 /* ========================================
+   LOGOUT CONFIRMATION MODAL
+======================================== */
+function openLogoutModal() {
+    const name = currentUsername || 'there';
+    document.getElementById('logoutConfirmName').textContent = 'Hey, ' + name + '!';
+    document.getElementById('logoutModal').style.display = 'flex';
+}
+
+function closeLogoutModal() {
+    document.getElementById('logoutModal').style.display = 'none';
+}
+
+function confirmLogout() {
+    closeLogoutModal();
+    handleLogout();
+}
+
+/* ========================================
    LOGOUT
 ======================================== */
 function handleLogout() {
@@ -432,10 +461,9 @@ function handleLogout() {
     localStorage.removeItem("currentUsername");
     localStorage.removeItem("currentUser");
     localStorage.removeItem("focusFlow_User");
-    clearTimerState(); // clear timer state on logout
 
-    document.getElementById('loginBtn').style.display = 'block';
     document.getElementById('loginBtn').innerText = "🔐 Sign In";
+    document.getElementById('loginBtn').style.display = 'block';
     document.getElementById('logoutBtn').style.display = 'none';
 
     loadTodos();
@@ -500,7 +528,7 @@ function handleSignUp() {
 }
 
 /* ========================================
-   TODO LIST
+   TODO LIST — localStorage-based
 ======================================== */
 document.getElementById('todoInput').onkeydown = (e) => {
     if (e.key === "Enter") addTodo();
@@ -564,87 +592,38 @@ function deleteTask(taskId) {
 }
 
 /* ========================================
-   SAVE SESSION TO BACKEND
+   SAVE SINGLE SESSION TO BACKEND
+   Called each time a pomodoro cycle completes
 ======================================== */
+let sessionSaveInProgress = false; // FIXED: guard against double-save from 500ms interval
+
 function saveSessionToBackend(durationSec) {
     if (!currentUserId) return;
-    fetch(`${BASE_URL}/api/logs/session`, {
+    if (sessionSaveInProgress) return; // FIXED: prevent duplicate saves
+    sessionSaveInProgress = true;
+
+    fetch(`${BASE_URL}/api/logs/session`, { // FIXED: was /api/sessions (wrong endpoint)
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            userId: parseInt(currentUserId),
-            durationSec: durationSec,
-            plannedSec: totalStudyTime || null
+            userId: currentUserId,
+            plannedSec: studyDuration,
+            durationSec: durationSec
         })
     })
     .then(res => res.json())
-    .then(data => console.log("Session saved to study_log:", data))
-    .catch(err => console.error("Session save error:", err));
+    .then(data => {
+        console.log("Session saved:", data);
+        sessionSaveInProgress = false;
+    })
+    .catch(err => {
+        console.error("Session save error:", err);
+        sessionSaveInProgress = false;
+    });
 }
 
 /* ========================================
-   TIMER STATE PERSISTENCE
-   Saves/restores timer across page navigation
-======================================== */
-function saveTimerState() {
-    localStorage.setItem('timerState', JSON.stringify({
-        time: time,
-        isRunning: isRunning,
-        isBreak: isBreak,
-        timeSpentStudying: timeSpentStudying,
-        studyDuration: studyDuration,
-        breakDuration: breakDuration,
-        totalStudyTime: totalStudyTime,
-        initialTime: initialTime,
-        savedAt: Date.now()
-    }));
-}
-
-function restoreTimerState() {
-    const saved = localStorage.getItem('timerState');
-    if (!saved) return false;
-
-    try {
-        const state = JSON.parse(saved);
-
-        // Adjust time for seconds elapsed while away (only if was running)
-        let adjustedTime = state.time;
-        if (state.isRunning) {
-            const secondsElapsed = Math.floor((Date.now() - state.savedAt) / 1000);
-            adjustedTime = Math.max(0, state.time - secondsElapsed);
-        }
-
-        // Restore all timer variables
-        time             = adjustedTime;
-        isBreak          = state.isBreak;
-        timeSpentStudying = state.isRunning
-            ? state.timeSpentStudying + Math.floor((Date.now() - state.savedAt) / 1000)
-            : state.timeSpentStudying;
-        studyDuration    = state.studyDuration;
-        breakDuration    = state.breakDuration;
-        totalStudyTime   = state.totalStudyTime;
-        initialTime      = state.initialTime;
-
-        updateTimer();
-
-        // Resume if it was running
-        if (state.isRunning && adjustedTime > 0) {
-            startTimer();
-        }
-
-        return true;
-    } catch (e) {
-        console.error("Failed to restore timer state:", e);
-        return false;
-    }
-}
-
-function clearTimerState() {
-    localStorage.removeItem('timerState');
-}
-
-/* ========================================
-   END DAY
+   END DAY → saves daily total to study_log
 ======================================== */
 function endTheDay() {
     if (!currentUser) {
@@ -653,9 +632,8 @@ function endTheDay() {
     }
 
     pauseTimer();
-    clearTimerState(); // clear saved state on end day
 
-    let progressPercentage = totalStudyTime > 0 ? (timeSpentStudying / totalStudyTime) * 100 : 0;
+    let progressPercentage = (timeSpentStudying / totalStudyTime) * 100;
 
     let catGif = "sad_cat.gif";
     let message = "I missed seeing you chase your goals today, but tomorrow is still yours. One slow day doesn't define you. Do your best tomorrow!";
@@ -674,6 +652,25 @@ function endTheDay() {
     let todos = JSON.parse(localStorage.getItem("todos_" + currentUser)) || [];
     let totalTasks = todos.length;
     let completedTasks = todos.filter(t => t.completed).length;
+
+    // Save any remaining unsaved study time as a session
+    if (timeSpentStudying > 0) {
+        saveSessionToBackend(timeSpentStudying);
+    }
+
+    // Save daily total — reuses /api/logs/session which upserts today's study_log row
+    fetch(`${BASE_URL}/api/logs/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            userId: currentUserId,
+            durationSec: timeSpentStudying,
+            plannedSec: totalStudyTime
+        })
+    })
+    .then(res => res.json())
+    .then(data => console.log("Study log saved:", data))
+    .catch(err => console.error("Study log save error:", err));
 
     document.getElementById('endDayCat').src = catGif;
     document.getElementById('endDayMessage').innerText = message;
@@ -752,9 +749,6 @@ function startTimer() {
             lastSecond = time;
             if (!half && time <= initialTime / 2) half = true;
 
-            // Save timer state every second
-            saveTimerState();
-
             if (!isBreak && breakDuration > 0 && time > 0 && time <= WARNING_SECONDS) {
                 showCountdownToast(`⏳ Break starts in ${time} second${time === 1 ? '' : 's'}...`, 'warning');
             }
@@ -820,7 +814,6 @@ function pauseTimer() {
     isRunning = false;
     document.getElementById('playPauseBtn').innerHTML = "▶";
     removeCountdownToast();
-    saveTimerState(); // save paused state too
 }
 
 function resetTimer() {
@@ -833,7 +826,6 @@ function resetTimer() {
     half = false;
     removeCountdownToast();
     removeBreakDelayToast();
-    clearTimerState(); // clear on reset
 }
 
 /* ========================================
@@ -851,7 +843,7 @@ function handleNavigation(element) {
         if (progress >= 100) {
             clearInterval(navigationInterval);
             prepareAnalyticsData();
-            setTimeout(() => { window.location.href = 'analysis1.html'; }, 200);
+            setTimeout(() => { window.location.href = 'analysis.html'; }, 200);
         }
     }, 20);
 }
@@ -870,7 +862,7 @@ function prepareAnalyticsData() {
     .then(analytics => {
         localStorage.setItem('focusFlow_User', JSON.stringify({
             name: currentUsername,
-            streak: analytics.streakDays || 0,
+            streak: analytics.streak || 0, // FIXED: was streakDays
             lastDate: new Date().toDateString(),
             totalMinutes: Math.round((analytics.totalHours || 0) * 60),
             totalSessions: analytics.totalSessions || 0,
@@ -936,38 +928,20 @@ function initVisualizer() {
 window.addEventListener('load', initVisualizer);
 
 /* ========================================
-   KEEP SERVER AWAKE (ping every 10 mins)
-======================================== */
-setInterval(() => {
-    fetch(`${BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'ping', password: 'ping' })
-    }).catch(() => {});
-}, 600000);
-
-/* ========================================
-   AUTO RESTORE LOGIN & TIMER STATE ON PAGE LOAD
+   AUTO RESTORE LOGIN ON PAGE LOAD
 ======================================== */
 window.addEventListener('load', function () {
-    const savedUserId   = localStorage.getItem("currentUserId");
+    const savedUserId = localStorage.getItem("currentUserId");
     const savedUsername = localStorage.getItem("currentUsername");
-    const savedEmail    = localStorage.getItem("currentUser");
+    const savedEmail = localStorage.getItem("currentUser");
 
     if (savedUserId && savedUsername) {
-        currentUserId    = savedUserId;
-        currentUsername  = savedUsername;
-        currentUser      = savedEmail;
+        currentUserId = savedUserId;
+        currentUsername = savedUsername;
+        currentUser = savedEmail;
         document.getElementById('loginBtn').innerText = "👋 Hi, " + savedUsername;
-        document.getElementById('loginBtn').style.display  = 'none';
+        document.getElementById('loginBtn').style.display = 'none';
         document.getElementById('logoutBtn').style.display = 'block';
         loadTodos();
-
-        // Restore timer state — only if user is logged in
-        const restored = restoreTimerState();
-        if (!restored) {
-            // No saved state — show welcome modal as normal
-            // (welcomeModal is shown by default in HTML)
-        }
     }
 });
