@@ -1,6 +1,7 @@
 package com.focusflow.controller;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +16,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.focusflow.model.Dto.*;
-import com.focusflow.model.Dto.AnalyticsSummary;
-import com.focusflow.model.Dto.SessionRequest;
-import com.focusflow.model.Dto.StudyLogResponse;
+import com.focusflow.model.Sessions;
+import com.focusflow.model.User;
+import com.focusflow.repository.SessionsRepository;
+import com.focusflow.repository.UserRepository;
 import com.focusflow.service.StudyLogService;
 
 @RestController
@@ -27,13 +29,35 @@ public class StudyLogController {
     @Autowired
     private StudyLogService studyLogService;
 
+    // FIXED Bug 3: injected so we can write to sessions table
+    @Autowired
+    private SessionsRepository sessionsRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
     /**
      * POST /api/logs/session
-     * Called after every pomodoro completes. Upserts today's study_log row live.
+     * Called after every pomodoro completes.
+     * 1) Inserts a row into sessions table (Bug 3 fix)
+     * 2) Upserts today's study_log row
      * Body: { "userId": 1, "durationSec": 1500, "plannedSec": 7200 }
      */
     @PostMapping("/session")
     public ResponseEntity<StudyLogResponse> recordSession(@RequestBody SessionRequest req) {
+        // FIXED Bug 3: save individual session row first
+        User user = userRepository.findById(req.getUserId()).orElse(null);
+        if (user != null) {
+            Sessions session = new Sessions();
+            session.setUser(user);
+            session.setDate(LocalDate.now());
+            session.setActualSec(req.getDurationSec());
+            session.setPlannedSec(req.getPlannedSec());
+            session.setLoggedAt(LocalDateTime.now());
+            sessionsRepository.save(session);
+        }
+
+        // Then upsert the daily study_log (session_count is recalculated from sessions table)
         return ResponseEntity.ok(
             studyLogService.recordSession(req.getUserId(), req.getDurationSec(), req.getPlannedSec())
         );
