@@ -815,9 +815,12 @@ function pauseTimer() {
 function resetTimer() {
     pauseTimer();
 
-    // Save elapsed study time before resetting
-    if (!isBreak && timeSpentStudying > 0) {
-        saveSessionToBackend(timeSpentStudying);
+    // Calculate how much of THIS session was studied
+    // e.g. planned 10:00, reset at 7:53 → elapsed = 10:00 - 7:53 = 2:07
+    const elapsedThisSession = studyDuration - time;
+
+    if (!isBreak && elapsedThisSession > 0) {
+        saveSessionToBackend(elapsedThisSession);
     }
 
     isBreak = false;
