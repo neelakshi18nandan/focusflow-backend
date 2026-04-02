@@ -653,11 +653,7 @@ function endTheDay() {
     let totalTasks = todos.length;
     let completedTasks = todos.filter(t => t.completed).length;
 
-    // Save any remaining unsaved study time as a session
-    if (timeSpentStudying > 0) {
-        saveSessionToBackend(timeSpentStudying);
-    }
-
+    
     // Save daily total — reuses /api/logs/session which upserts today's study_log row
     fetch(`${BASE_URL}/api/logs/session`, {
         method: "POST",
