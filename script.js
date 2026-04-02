@@ -838,6 +838,13 @@ function handleNavigation(element) {
 
         if (progress >= 100) {
             clearInterval(navigationInterval);
+            // Save timer state before leaving
+            localStorage.setItem('ff_timerState', JSON.stringify({
+                time, isBreak, isRunning,
+                studyDuration, breakDuration,
+                totalStudyTime, timeSpentStudying,
+                initialTime
+            }));
             prepareAnalyticsData();
             setTimeout(() => { window.location.href = 'analysis1.html'; }, 200);
         }
@@ -939,5 +946,21 @@ window.addEventListener('load', function () {
         document.getElementById('loginBtn').style.display = 'none';
         document.getElementById('logoutBtn').style.display = 'block';
         loadTodos();
+    }
+    // Restore timer state if returning from analytics page
+    const saved = localStorage.getItem('ff_timerState');
+    if (saved) {
+        const s = JSON.parse(saved);
+        time = s.time;
+        isBreak = s.isBreak;
+        studyDuration = s.studyDuration;
+        breakDuration = s.breakDuration;
+        totalStudyTime = s.totalStudyTime;
+        timeSpentStudying = s.timeSpentStudying;
+        initialTime = s.initialTime;
+        updateTimer();
+        localStorage.removeItem('ff_timerState');
+        // Resume if it was running
+        if (s.isRunning) startTimer();
     }
 });
