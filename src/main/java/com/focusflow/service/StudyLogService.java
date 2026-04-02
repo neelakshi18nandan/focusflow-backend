@@ -10,10 +10,11 @@ import org.springframework.stereotype.Service;
 
 import com.focusflow.model.Dto.AnalyticsSummary;
 import com.focusflow.model.Dto.StudyLogResponse;
+import com.focusflow.model.Sessions;
 import com.focusflow.model.StudyLog;
 import com.focusflow.model.User;
 import com.focusflow.repository.SessionsRepository;
-import com.focusflow.repository.StudyLogRepository; // FIXED: was SessionRepository
+import com.focusflow.repository.StudyLogRepository;
 import com.focusflow.repository.UserRepository;
 
 @Service
@@ -23,70 +24,87 @@ public class StudyLogService {
     private StudyLogRepository studyLogRepository;
 
     @Autowired
-    private SessionsRepository sessionsRepository; // FIXED: correct name
+    private SessionsRepository sessionsRepository;
 
     @Autowired
     private UserRepository userRepository;
 
-    // ── Record a completed pomodoro session ───────────────────────────────────
-
+    /**
+     * Called every time a pomodoro completes or timer is reset.
+     * 1) Saves individual log entry into sessions table
+     * 2) Updates (upserts) daily total in study_log table
+     */
     public StudyLogResponse recordSession(Long userId, int durationSec, int plannedSec) {
         LocalDate today = LocalDate.now();
+        User user = userRepository.findById(userId).orElseThrow();
 
+        // Step 1: Save individual log into sessions table
+        Sessions log = new Sessions();
+        log.setUser(user);
+        log.setDate(today);
+        log.setActualSec(durationSec);
+        log.setPlannedSec(plannedSec);
+        log.setLoggedAt(java.time.LocalDateTime.now());
+        sessionsRepository.save(log);
+
+        // Step 2: Upsert daily total in study_log
         Optional<StudyLog> existing = studyLogRepository.findByUser_IdAndDate(userId, today);
+        StudyLog dailyTotal;
 
-        StudyLog log;
         if (existing.isPresent()) {
-            log = existing.get();
-            log.setActualSec(log.getActualSec() + durationSec);
-            if (plannedSec > 0 && (log.getPlannedSec() == null || plannedSec > log.getPlannedSec())) {
-                log.setPlannedSec(plannedSec);
+            dailyTotal = existing.get();
+            dailyTotal.setActualSec(dailyTotal.getActualSec() + durationSec);
+            // Keep the highest plannedSec as the day's goal
+            if (plannedSec > 0 && (dailyTotal.getPlannedSec() == null || plannedSec > dailyTotal.getPlannedSec())) {
+                dailyTotal.setPlannedSec(plannedSec);
             }
         } else {
-            // FIXED: StudyLog uses User object, not setUserId()
-            User user = userRepository.findById(userId).orElseThrow();
-            log = new StudyLog();
-            log.setUser(user);
-            log.setDate(today);
-            log.setActualSec(durationSec);
-            log.setPlannedSec(plannedSec);
+            dailyTotal = new StudyLog();
+            dailyTotal.setUser(user);
+            dailyTotal.setDate(today);
+            dailyTotal.setActualSec(durationSec);
+            dailyTotal.setPlannedSec(plannedSec);
         }
 
-        // Count sessions from SessionsRepository for today
-        int sessionCount = sessionsRepository.findByUser_IdAndDate(userId, today).size();
-        log.setSessionCount(sessionCount);
+        // session_count = number of individual logs today
+        int logCount = sessionsRepository.findByUser_IdAndDate(userId, today).size();
+        dailyTotal.setSessionCount(logCount);
 
-        studyLogRepository.save(log);
+        studyLogRepository.save(dailyTotal);
 
-        return toResponse(log);
+        return toResponse(dailyTotal);
     }
 
-    // ── Full analytics for the analysis page ──────────────────────────────────
-
+    /**
+     * Full analytics for the analysis page.
+     * Reads from study_log (daily totals).
+     */
     public AnalyticsSummary getAnalytics(Long userId) {
-        List<StudyLog> logs = studyLogRepository.findByUser_IdOrderByDateDesc(userId);
+        List<StudyLog> dailyTotals = studyLogRepository.findByUser_IdOrderByDateDesc(userId);
 
-        double totalHours = logs.stream()
+        double totalHours = dailyTotals.stream()
                 .mapToInt(StudyLog::getActualSec)
                 .sum() / 3600.0;
 
-        int totalSessions = logs.stream()
+        // totalSessions = total number of individual logs across all days
+        int totalSessions = dailyTotals.stream()
                 .mapToInt(StudyLog::getSessionCount)
                 .sum();
 
-        int streak = calculateStreak(logs);
+        int streak = calculateStreak(dailyTotals);
 
-        double avgDailyHours = logs.isEmpty() ? 0 : totalHours / logs.size();
+        double avgDailyHours = dailyTotals.isEmpty() ? 0 : totalHours / dailyTotals.size();
 
-        List<StudyLogResponse> logResponses = logs.stream()
+        List<StudyLogResponse> logResponses = dailyTotals.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
 
         return new AnalyticsSummary(totalHours, totalSessions, streak, avgDailyHours, logResponses);
     }
 
-    // ── Logs in a date range ──────────────────────────────────────────────────
-
+    /**
+     * Logs in a date range for monthly charts.
+     */
     public List<StudyLogResponse> getLogsInRange(Long userId, LocalDate from, LocalDate to) {
         return studyLogRepository.findByUser_IdAndDateBetweenOrderByDate(userId, from, to)
                 .stream()
@@ -94,22 +112,21 @@ public class StudyLogService {
                 .collect(Collectors.toList());
     }
 
-    // ── Streak calculation ────────────────────────────────────────────────────
-
+    /**
+     * Streak = consecutive days with actualSec > 0 in study_log.
+     */
     private int calculateStreak(List<StudyLog> logs) {
         if (logs.isEmpty()) return 0;
 
         LocalDate today = LocalDate.now();
         LocalDate mostRecentLogDate = logs.get(0).getDate();
 
-        // Allow streak if last study was today OR yesterday
         if (mostRecentLogDate.isBefore(today.minusDays(1))) return 0;
 
         int streak = 0;
         LocalDate expected = mostRecentLogDate;
 
         for (StudyLog log : logs) {
-            // FIXED: use actualSec > 0 (more reliable than sessionCount)
             if (log.getDate().equals(expected) && log.getActualSec() > 0) {
                 streak++;
                 expected = expected.minusDays(1);
@@ -120,11 +137,9 @@ public class StudyLogService {
         return streak;
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────
-
     private StudyLogResponse toResponse(StudyLog log) {
         return new StudyLogResponse(
-                log.getLogId(),          // FIXED: was getId(), entity uses getLogId()
+                log.getLogId(),
                 log.getDate(),
                 log.getActualSec(),
                 log.getPlannedSec() != null ? log.getPlannedSec() : 0,

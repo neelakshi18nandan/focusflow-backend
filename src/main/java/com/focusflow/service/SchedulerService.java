@@ -27,10 +27,14 @@ public class SchedulerService {
     @Autowired
     private UserRepository userRepository;
 
-    // Runs every day at 11:59 PM
+    /**
+     * Runs every day at 11:59 PM.
+     * For each user, reads all individual session logs from sessions table today,
+     * sums them up, and writes the final daily total into study_log.
+     */
     @Scheduled(cron = "0 59 23 * * *")
     public void dailyStreakCheck() {
-        System.out.println("Running daily streak check...");
+        System.out.println("Running daily sync...");
 
         LocalDate today = LocalDate.now();
         List<User> allUsers = userRepository.findAll();
@@ -38,34 +42,47 @@ public class SchedulerService {
         for (User user : allUsers) {
             Long userId = user.getId();
 
-            Optional<StudyLog> todayLog = studyLogRepository
-                .findByUser_IdAndDate(userId, today);
+            // Get all individual logs for today from sessions table
+            List<Sessions> todayLogs = sessionsRepository.findByUser_IdAndDate(userId, today);
 
-            if (todayLog.isPresent()) {
-                // User studied today — sync session count + actual secs
-                List<Sessions> todaySessions = sessionsRepository
-                    .findByUser_IdAndDate(userId, today);
-
-                StudyLog log = todayLog.get();
-
-                int totalActualSec = todaySessions.stream()
+            if (!todayLogs.isEmpty()) {
+                // Sum up all individual logs into daily total
+                int totalActualSec = todayLogs.stream()
                     .mapToInt(Sessions::getActualSec)
                     .sum();
 
-                log.setSessionCount(todaySessions.size());
-                log.setActualSec(totalActualSec);
-                studyLogRepository.save(log);
+                int logCount = todayLogs.size();
 
-                System.out.println("✅ Streak active — " 
-                    + user.getUsername() 
-                    + " studied " + totalActualSec + " secs today");
+                // Upsert into study_log (daily total)
+                Optional<StudyLog> existing = studyLogRepository.findByUser_IdAndDate(userId, today);
+                StudyLog dailyTotal;
+
+                if (existing.isPresent()) {
+                    dailyTotal = existing.get();
+                } else {
+                    dailyTotal = new StudyLog();
+                    dailyTotal.setUser(user);
+                    dailyTotal.setDate(today);
+                    // Use plannedSec from latest log
+                    todayLogs.stream()
+                        .filter(s -> s.getPlannedSec() != null)
+                        .mapToInt(Sessions::getPlannedSec)
+                        .max()
+                        .ifPresent(dailyTotal::setPlannedSec);
+                }
+
+                dailyTotal.setActualSec(totalActualSec);
+                dailyTotal.setSessionCount(logCount);
+                studyLogRepository.save(dailyTotal);
+
+                System.out.println("✅ " + user.getUsername()
+                    + " — " + logCount + " logs, "
+                    + totalActualSec + " secs total today");
             } else {
-                // User did NOT study today — streak broken
-                System.out.println("❌ No study today — " 
-                    + user.getUsername() + " streak broken");
+                System.out.println("❌ No logs today — " + user.getUsername() + " streak broken");
             }
         }
 
-        System.out.println("Daily streak check complete.");
+        System.out.println("Daily sync complete.");
     }
 }
