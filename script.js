@@ -843,7 +843,7 @@ function handleNavigation(element) {
         if (progress >= 100) {
             clearInterval(navigationInterval);
             prepareAnalyticsData();
-            setTimeout(() => { window.location.href = 'analysis.html'; }, 200);
+            setTimeout(() => { window.location.href = 'analysis1.html'; }, 200);
         }
     }, 20);
 }
