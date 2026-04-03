@@ -32,8 +32,8 @@ public class Sessions {
     @Column(name = "actual_sec", nullable = false)
     private int actualSec;
 
-    @Column(name = "planned_sec")
-    private Integer plannedSec;
+    @Column(name = "duration_sec")
+    private Integer durationSec;
 
     @Column(name = "logged_at")
     private LocalDateTime loggedAt;
@@ -46,8 +46,7 @@ public class Sessions {
     public void setDate(LocalDate date) { this.date = date; }
     public int getActualSec() { return actualSec; }
     public void setActualSec(int actualSec) { this.actualSec = actualSec; }
-    public Integer getPlannedSec() { return plannedSec; }
-    public void setPlannedSec(Integer plannedSec) { this.plannedSec = plannedSec; }
-    public LocalDateTime getLoggedAt() { return loggedAt; }
+    public Integer getDurationSec() { return durationSec; }
+    public void setDurationSec(Integer durationSec) { this.durationSec = durationSec; }    public LocalDateTime getLoggedAt() { return loggedAt; }
     public void setLoggedAt(LocalDateTime loggedAt) { this.loggedAt = loggedAt; }
 }

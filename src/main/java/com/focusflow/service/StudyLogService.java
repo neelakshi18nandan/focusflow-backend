@@ -34,7 +34,7 @@ public class StudyLogService {
      * 1) Saves individual log entry into sessions table
      * 2) Updates (upserts) daily total in study_log table
      */
-    public StudyLogResponse recordSession(Long userId, int durationSec, int plannedSec) {
+    public StudyLogResponse recordSession(Long userId, int durationSec, int plannedSec, int totalPlannedSec) {
         LocalDate today = LocalDate.now();
         User user = userRepository.findById(userId).orElseThrow();
 
@@ -43,7 +43,7 @@ public class StudyLogService {
         log.setUser(user);
         log.setDate(today);
         log.setActualSec(durationSec);
-        log.setPlannedSec(plannedSec);
+        log.setDurationSec(plannedSec);
         log.setLoggedAt(java.time.LocalDateTime.now());
         sessionsRepository.save(log);
 
@@ -54,18 +54,16 @@ public class StudyLogService {
         if (existing.isPresent()) {
             dailyTotal = existing.get();
             dailyTotal.setActualSec(dailyTotal.getActualSec() + durationSec);
-            // Keep the highest plannedSec as the day's goal
-            if (plannedSec > 0 && (dailyTotal.getPlannedSec() == null || plannedSec > dailyTotal.getPlannedSec())) {
-                dailyTotal.setPlannedSec(plannedSec);
+            if (totalPlannedSec > 0) {
+                dailyTotal.setPlannedSec(totalPlannedSec);
             }
         } else {
             dailyTotal = new StudyLog();
             dailyTotal.setUser(user);
             dailyTotal.setDate(today);
             dailyTotal.setActualSec(durationSec);
-            dailyTotal.setPlannedSec(plannedSec);
+            dailyTotal.setPlannedSec(totalPlannedSec);
         }
-
         // session_count = number of individual logs today
         int logCount = sessionsRepository.findByUser_IdAndDate(userId, today).size();
         dailyTotal.setSessionCount(logCount);
@@ -116,12 +114,14 @@ public class StudyLogService {
      * Streak = consecutive days with actualSec > 0 in study_log.
      */
     private int calculateStreak(List<StudyLog> logs) {
-        if (logs.isEmpty()) return 0;
+        if (logs.isEmpty())
+            return 0;
 
         LocalDate today = LocalDate.now();
         LocalDate mostRecentLogDate = logs.get(0).getDate();
 
-        if (mostRecentLogDate.isBefore(today.minusDays(1))) return 0;
+        if (mostRecentLogDate.isBefore(today.minusDays(1)))
+            return 0;
 
         int streak = 0;
         LocalDate expected = mostRecentLogDate;
@@ -143,7 +143,6 @@ public class StudyLogService {
                 log.getDate(),
                 log.getActualSec(),
                 log.getPlannedSec() != null ? log.getPlannedSec() : 0,
-                log.getSessionCount()
-        );
+                log.getSessionCount());
     }
 }

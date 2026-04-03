@@ -27,7 +27,7 @@ function playAlertTone(type = 'study') {
     const now = ctx.currentTime;
 
     function playNote(freq, startAt, duration, volume = 0.4, oscType = 'sine') {
-        const osc  = ctx.createOscillator();
+        const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -140,9 +140,9 @@ function showToast(message, duration = 4000, type = 'info') {
     if (existing) existing.remove();
 
     const colors = {
-        info:    { bg: 'linear-gradient(135deg, #667eea, #764ba2)', border: 'rgba(102,126,234,0.5)' },
-        break:   { bg: 'linear-gradient(135deg, #11998e, #38ef7d)', border: 'rgba(56,239,125,0.5)' },
-        study:   { bg: 'linear-gradient(135deg, #f093fb, #f5576c)', border: 'rgba(240,147,251,0.5)' },
+        info: { bg: 'linear-gradient(135deg, #667eea, #764ba2)', border: 'rgba(102,126,234,0.5)' },
+        break: { bg: 'linear-gradient(135deg, #11998e, #38ef7d)', border: 'rgba(56,239,125,0.5)' },
+        study: { bg: 'linear-gradient(135deg, #f093fb, #f5576c)', border: 'rgba(240,147,251,0.5)' },
         warning: { bg: 'linear-gradient(135deg, #f7971e, #ffd200)', border: 'rgba(255,210,0,0.5)' },
     };
     const c = colors[type] || colors.info;
@@ -180,7 +180,7 @@ function showToast(message, duration = 4000, type = 'info') {
 function showCountdownToast(message, type = 'warning') {
     const colors = {
         warning: { bg: 'linear-gradient(135deg, #f7971e, #ffd200)', border: 'rgba(255,210,0,0.5)' },
-        break:   { bg: 'linear-gradient(135deg, #11998e, #38ef7d)', border: 'rgba(56,239,125,0.5)' },
+        break: { bg: 'linear-gradient(135deg, #11998e, #38ef7d)', border: 'rgba(56,239,125,0.5)' },
     };
     const c = colors[type] || colors.warning;
     let toast = document.getElementById('countdownToast');
@@ -405,31 +405,31 @@ function handleSignIn() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
     })
-    .then(res => res.json())
-    .then(data => {
-        if (!data.success) {
-            alert(data.message || "Login failed. Please try again.");
-            return;
-        }
-        currentUserId = data.userId;
-        currentUsername = data.username;
-        currentUser = data.email;
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                alert(data.message || "Login failed. Please try again.");
+                return;
+            }
+            currentUserId = data.userId;
+            currentUsername = data.username;
+            currentUser = data.email;
 
-        localStorage.setItem("currentUserId", data.userId);
-        localStorage.setItem("currentUsername", data.username);
-        localStorage.setItem("currentUser", data.email);
+            localStorage.setItem("currentUserId", data.userId);
+            localStorage.setItem("currentUsername", data.username);
+            localStorage.setItem("currentUser", data.email);
 
-        document.getElementById('loginBtn').innerText = "👋 Hi, " + data.username;
-        document.getElementById('loginBtn').style.display = 'none';
-        document.getElementById('logoutBtn').style.display = 'block';
-        loadTodos();
-        closeLogin();
-        document.getElementById('welcomeModal').style.display = "flex";
-    })
-    .catch(err => {
-        console.error("Sign in error:", err);
-        alert("Could not connect to server. Please wait 60 seconds and try again (server may be waking up).");
-    });
+            document.getElementById('loginBtn').innerText = "👋 Hi, " + data.username;
+            document.getElementById('loginBtn').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'block';
+            loadTodos();
+            closeLogin();
+            document.getElementById('welcomeModal').style.display = "flex";
+        })
+        .catch(err => {
+            console.error("Sign in error:", err);
+            alert("Could not connect to server. Please wait 60 seconds and try again (server may be waking up).");
+        });
 }
 
 /* ========================================
@@ -494,37 +494,37 @@ function handleSignUp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: name, email, password })
     })
-    .then(res => res.json())
-    .then(data => {
-        if (!data.success) {
-            alert(data.message || "Registration failed. Please try again.");
-            return;
-        }
-        currentUserId = data.userId;
-        currentUsername = data.username;
-        currentUser = data.email;
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                alert(data.message || "Registration failed. Please try again.");
+                return;
+            }
+            currentUserId = data.userId;
+            currentUsername = data.username;
+            currentUser = data.email;
 
-        localStorage.setItem("currentUserId", data.userId);
-        localStorage.setItem("currentUsername", data.username);
-        localStorage.setItem("currentUser", data.email);
+            localStorage.setItem("currentUserId", data.userId);
+            localStorage.setItem("currentUsername", data.username);
+            localStorage.setItem("currentUser", data.email);
 
-        document.getElementById('loginBtn').innerText = "👋 Hi, " + data.username;
-        document.getElementById('loginBtn').style.display = 'none';
-        document.getElementById('logoutBtn').style.display = 'block';
+            document.getElementById('loginBtn').innerText = "👋 Hi, " + data.username;
+            document.getElementById('loginBtn').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'block';
 
-        document.getElementById('signupName').value = '';
-        document.getElementById('signupEmail').value = '';
-        document.getElementById('signupPassword').value = '';
-        document.getElementById('signupConfirmPassword').value = '';
+            document.getElementById('signupName').value = '';
+            document.getElementById('signupEmail').value = '';
+            document.getElementById('signupPassword').value = '';
+            document.getElementById('signupConfirmPassword').value = '';
 
-        loadTodos();
-        closeLogin();
-        document.getElementById('welcomeModal').style.display = "flex";
-    })
-    .catch(err => {
-        console.error("Sign up error:", err);
-        alert("Could not connect to server. Please wait 60 seconds and try again (server may be waking up).");
-    });
+            loadTodos();
+            closeLogin();
+            document.getElementById('welcomeModal').style.display = "flex";
+        })
+        .catch(err => {
+            console.error("Sign up error:", err);
+            alert("Could not connect to server. Please wait 60 seconds and try again (server may be waking up).");
+        });
 }
 
 /* ========================================
@@ -607,19 +607,20 @@ function saveSessionToBackend(durationSec) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             userId: currentUserId,
+            durationSec: durationSec,
             plannedSec: studyDuration,
-            durationSec: durationSec
+            totalPlannedSec: totalStudyTime
         })
     })
-    .then(res => res.json())
-    .then(data => {
-        console.log("Session saved:", data);
-        sessionSaveInProgress = false;
-    })
-    .catch(err => {
-        console.error("Session save error:", err);
-        sessionSaveInProgress = false;
-    });
+        .then(res => res.json())
+        .then(data => {
+            console.log("Session saved:", data);
+            sessionSaveInProgress = false;
+        })
+        .catch(err => {
+            console.error("Session save error:", err);
+            sessionSaveInProgress = false;
+        });
 }
 
 /* ========================================
@@ -653,7 +654,7 @@ function endTheDay() {
     let totalTasks = todos.length;
     let completedTasks = todos.filter(t => t.completed).length;
 
-    
+
     document.getElementById('endDayCat').src = catGif;
     document.getElementById('endDayMessage').innerText = message;
     document.getElementById('hoursStudied').innerText = hoursStudied;
@@ -856,26 +857,26 @@ function prepareAnalyticsData() {
     }
 
     fetch(`${BASE_URL}/api/logs/${currentUserId}`)
-    .then(res => res.json())
-    .then(analytics => {
-        localStorage.setItem('focusFlow_User', JSON.stringify({
-            name: currentUsername,
-            streak: analytics.streak || 0, // FIXED: was streakDays
-            lastDate: new Date().toDateString(),
-            totalMinutes: Math.round((analytics.totalHours || 0) * 60),
-            totalSessions: analytics.totalSessions || 0,
-            avgDailyHours: analytics.avgDailyHours || 0,
-            logs: analytics.logs || []
-        }));
-    })
-    .catch(err => {
-        console.error("Analytics fetch error:", err);
-        localStorage.setItem('focusFlow_User', JSON.stringify({
-            name: currentUsername || "User", streak: 0,
-            lastDate: new Date().toDateString(),
-            totalMinutes: Math.floor(timeSpentStudying / 60)
-        }));
-    });
+        .then(res => res.json())
+        .then(analytics => {
+            localStorage.setItem('focusFlow_User', JSON.stringify({
+                name: currentUsername,
+                streak: analytics.streak || 0, // FIXED: was streakDays
+                lastDate: new Date().toDateString(),
+                totalMinutes: Math.round((analytics.totalHours || 0) * 60),
+                totalSessions: analytics.totalSessions || 0,
+                avgDailyHours: analytics.avgDailyHours || 0,
+                logs: analytics.logs || []
+            }));
+        })
+        .catch(err => {
+            console.error("Analytics fetch error:", err);
+            localStorage.setItem('focusFlow_User', JSON.stringify({
+                name: currentUsername || "User", streak: 0,
+                lastDate: new Date().toDateString(),
+                totalMinutes: Math.floor(timeSpentStudying / 60)
+            }));
+        });
 }
 
 /* ========================================

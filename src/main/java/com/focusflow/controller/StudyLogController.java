@@ -37,7 +37,7 @@ public class StudyLogController {
     @PostMapping("/session")
     public ResponseEntity<StudyLogResponse> recordSession(@RequestBody SessionRequest req) {
         return ResponseEntity.ok(
-            studyLogService.recordSession(req.getUserId(), req.getDurationSec(), req.getPlannedSec())
+            studyLogService.recordSession(req.getUserId(), req.getDurationSec(), req.getPlannedSec(), req.getTotalPlannedSec())
         );
     }
 

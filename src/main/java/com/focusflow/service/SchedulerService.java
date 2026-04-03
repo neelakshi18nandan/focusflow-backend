@@ -65,8 +65,8 @@ public class SchedulerService {
                     dailyTotal.setDate(today);
                     // Use plannedSec from latest log
                     todayLogs.stream()
-                        .filter(s -> s.getPlannedSec() != null)
-                        .mapToInt(Sessions::getPlannedSec)
+                        .filter(s -> s.getDurationSec() != null)
+                        .mapToInt(Sessions::getDurationSec)
                         .max()
                         .ifPresent(dailyTotal::setPlannedSec);
                 }
