@@ -811,7 +811,6 @@ function resetTimer() {
     }
 
     isBreak = false;
-    timeSpentStudying = 0;
     time = studyDuration;
     initialTime = studyDuration;
     updateTimer();
