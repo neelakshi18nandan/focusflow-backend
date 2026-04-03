@@ -654,20 +654,6 @@ function endTheDay() {
     let completedTasks = todos.filter(t => t.completed).length;
 
     
-    // Save daily total — reuses /api/logs/session which upserts today's study_log row
-    fetch(`${BASE_URL}/api/logs/session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            userId: currentUserId,
-            durationSec: timeSpentStudying,
-            plannedSec: totalStudyTime
-        })
-    })
-    .then(res => res.json())
-    .then(data => console.log("Study log saved:", data))
-    .catch(err => console.error("Study log save error:", err));
-
     document.getElementById('endDayCat').src = catGif;
     document.getElementById('endDayMessage').innerText = message;
     document.getElementById('hoursStudied').innerText = hoursStudied;
