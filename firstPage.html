@@ -42,7 +42,7 @@
 
     .nav-logo {
       font-family: 'Algerian', cursive, sans-serif;
-      font-size: 3rem;
+      font-size: 4rem;
       letter-spacing: 0.04em;
       color: var(--white);
       text-transform: uppercase;
@@ -73,6 +73,7 @@
       overflow: hidden;
     }
 
+    /* animated glow blobs */
     #hero::before {
       content: '';
       position: absolute; width: 600px; height: 600px;
@@ -102,7 +103,7 @@
 
     .hero-title {
       font-family: 'Playfair Display', serif;
-      font-size: clamp(2.1rem, 4.9vw, 4.2rem);
+      font-size: clamp(3rem, 7vw, 6rem);
       font-weight: 900;
       line-height: 1.08;
       text-transform: capitalize;
@@ -214,6 +215,7 @@
       line-height: 1.65;
     }
 
+    /* colored titles for bottom row */
     .feat-card.colored h3 { color: var(--cyan); }
 
     /* ── FOOTER ── */
@@ -305,6 +307,7 @@
     @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:none; } }
     @keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:none; } }
 
+    /* stagger cards */
     .feat-card:nth-child(1) { transition-delay: 0.05s; }
     .feat-card:nth-child(2) { transition-delay: 0.12s; }
     .feat-card:nth-child(3) { transition-delay: 0.19s; }
@@ -317,11 +320,13 @@
 </head>
 <body>
 
+<!-- NAV -->
 <nav>
   <span class="nav-logo">Focus Flow</span>
   <a href="index.html" class="nav-btn">Get Started</a>
 </nav>
 
+<!-- HERO -->
 <section id="hero">
   <p class="hero-eyebrow">Your Productivity Companion</p>
   <h1 class="hero-title">
@@ -334,6 +339,7 @@
   <a href="index.html" class="hero-cta">Start Focusing ↗</a>
 </section>
 
+<!-- FEATURES -->
 <section id="features">
   <h2 id="feat-heading">Features</h2>
   <div class="features-grid">
@@ -358,9 +364,9 @@
       <p>Curated study music, ambient sounds, and calm audio designed to help you enter deep-focus mode instantly.</p>
     </div>
     <div class="feat-card colored">
-      <span class="feat-icon">✨</span>
-      <h3>Inspire Stream</h3>
-      <p>A rotating collection of uplifting quotes to keep your mindset positive and your motivation high.</p>
+      <span class="feat-icon">💬</span>
+      <h3>Motivational Quotes</h3>
+      <p>A curated library of powerful quotes from thinkers, athletes, and leaders — refreshed each session to fuel your drive.</p>
     </div>
     <div class="feat-card colored">
       <span class="feat-icon">📝</span>
@@ -373,14 +379,16 @@
       <p>Daily and weekly streaks that reward consistency and help you build long-term study habits.</p>
     </div>
     <div class="feat-card colored">
-      <span class="feat-icon">🌈</span>
-      <h3>Mood Log</h3>
-      <p>Track your mood before and after sessions to understand how your emotions and productivity connect.</p>
+      <span class="feat-icon">🧘</span>
+      <h3>Break Reminders</h3>
+      <p>Smart nudges that remind you to step away, stretch, and recharge so you return to every session at your best.</p>
     </div>
   </div>
 </section>
 
+<!-- FOOTER -->
 <footer>
+  <canvas id="footer-canvas"></canvas>
   <div class="footer-inner">
     <div class="footer-grid" id="footer-grid">
       <div class="footer-brand">
@@ -407,7 +415,8 @@
           <li><a href="#">📊 Progress Analytics</a></li>
           <li><a href="#">📝 Task Planner</a></li>
           <li><a href="#">🔥 Streak Tracker</a></li>
-          <li><a href="#">🌈 Mood Log</a></li>
+          <li><a href="#">🧘 Break Reminders</a></li>
+          <li><a href="#">💬 Motivational Quotes</a></li>
           <li><a href="#">🎵 Focus Soundscapes</a></li>
         </ul>
       </div>
@@ -435,6 +444,7 @@
 </footer>
 
 <script>
+  // Intersection Observer for scroll animations
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) e.target.classList.add('visible');
@@ -442,6 +452,114 @@
   }, { threshold: 0.12 });
 
   document.querySelectorAll('.feat-card, #feat-heading, #footer-grid').forEach(el => observer.observe(el));
+
+  // ── Draw mountain / lake scene on footer canvas ──
+  function drawMountainScene() {
+    const canvas = document.getElementById('footer-canvas');
+    if (!canvas) return;
+    const footer = canvas.parentElement;
+    canvas.width  = footer.offsetWidth  || 1400;
+    canvas.height = footer.offsetHeight || 500;
+    const W = canvas.width, H = canvas.height;
+    const ctx = canvas.getContext('2d');
+
+    // Sky gradient
+    const sky = ctx.createLinearGradient(0, 0, 0, H * 0.55);
+    sky.addColorStop(0,   '#0a1a3a');
+    sky.addColorStop(0.4, '#0d2a5e');
+    sky.addColorStop(1,   '#1a4a8a');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+
+    // Stars
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    for (let i = 0; i < 120; i++) {
+      const x = Math.random() * W;
+      const y = Math.random() * H * 0.45;
+      const r = Math.random() * 1.2;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Far mountains (dark blue-grey)
+    ctx.fillStyle = '#1a2d50';
+    ctx.beginPath();
+    ctx.moveTo(0, H * 0.62);
+    ctx.bezierCurveTo(W*0.05, H*0.35, W*0.12, H*0.28, W*0.2,  H*0.38);
+    ctx.bezierCurveTo(W*0.28, H*0.48, W*0.32, H*0.32, W*0.42, H*0.22);
+    ctx.bezierCurveTo(W*0.52, H*0.12, W*0.58, H*0.30, W*0.65, H*0.42);
+    ctx.bezierCurveTo(W*0.72, H*0.52, W*0.78, H*0.28, W*0.88, H*0.20);
+    ctx.bezierCurveTo(W*0.95, H*0.14, W,      H*0.35, W,      H*0.50);
+    ctx.lineTo(W, H*0.62); ctx.closePath(); ctx.fill();
+
+    // Near mountains (darker)
+    ctx.fillStyle = '#0f1e38';
+    ctx.beginPath();
+    ctx.moveTo(0, H * 0.72);
+    ctx.bezierCurveTo(W*0.08, H*0.50, W*0.15, H*0.42, W*0.25, H*0.55);
+    ctx.bezierCurveTo(W*0.33, H*0.65, W*0.38, H*0.48, W*0.50, H*0.36);
+    ctx.bezierCurveTo(W*0.60, H*0.26, W*0.68, H*0.48, W*0.75, H*0.60);
+    ctx.bezierCurveTo(W*0.82, H*0.70, W*0.88, H*0.44, W*0.96, H*0.38);
+    ctx.lineTo(W, H*0.45); ctx.lineTo(W, H*0.72); ctx.closePath(); ctx.fill();
+
+    // Forest treeline
+    ctx.fillStyle = '#0b1728';
+    ctx.beginPath(); ctx.rect(0, H*0.70, W, H*0.30); ctx.fill();
+
+    // Pine trees silhouette
+    ctx.fillStyle = '#071020';
+    for (let i = 0; i < W; i += 18) {
+      const h = 28 + Math.sin(i * 0.07) * 14 + Math.random() * 10;
+      const base = H * 0.70;
+      ctx.beginPath();
+      ctx.moveTo(i + 9, base - h);
+      ctx.lineTo(i + 18, base);
+      ctx.lineTo(i, base);
+      ctx.closePath(); ctx.fill();
+    }
+
+    // Lake (lower half)
+    const lake = ctx.createLinearGradient(0, H*0.70, 0, H);
+    lake.addColorStop(0, '#0d2a5e');
+    lake.addColorStop(0.4, '#102048');
+    lake.addColorStop(1,   '#071020');
+    ctx.fillStyle = lake;
+    ctx.fillRect(0, H*0.70, W, H*0.30);
+
+    // Lake shimmer reflections
+    ctx.strokeStyle = 'rgba(126,200,227,0.18)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 12; i++) {
+      const y = H*0.73 + i * (H*0.27/12);
+      const len = 40 + Math.random() * 120;
+      const x = Math.random() * W;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + len, y); ctx.stroke();
+    }
+
+    // Moon glow
+    const moonGrad = ctx.createRadialGradient(W*0.75, H*0.12, 0, W*0.75, H*0.12, 80);
+    moonGrad.addColorStop(0,   'rgba(200,230,255,0.55)');
+    moonGrad.addColorStop(0.4, 'rgba(150,200,255,0.18)');
+    moonGrad.addColorStop(1,   'transparent');
+    ctx.fillStyle = moonGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Moon disc
+    ctx.fillStyle = '#ddeeff';
+    ctx.beginPath(); ctx.arc(W*0.75, H*0.12, 14, 0, Math.PI*2); ctx.fill();
+
+    // Moon reflection in lake
+    const moonRef = ctx.createLinearGradient(0, H*0.70, 0, H);
+    moonRef.addColorStop(0, 'rgba(180,220,255,0.25)');
+    moonRef.addColorStop(1, 'transparent');
+    ctx.fillStyle = moonRef;
+    const cx = W*0.75;
+    ctx.beginPath();
+    ctx.ellipse(cx, H*0.85, 18, 60, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  drawMountainScene();
+  window.addEventListener('resize', drawMountainScene);
 </script>
 </body>
 </html>
