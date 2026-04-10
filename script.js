@@ -291,16 +291,16 @@ function closeDurationModal() {
 
 function setCustomDuration() {
     let totalHours = parseFloat(document.getElementById('totalHours').value) || 0;
-    let studyH = parseInt(document.getElementById('studyHours').value) || 0;
     let studyM = parseInt(document.getElementById('studyMins').value) || 25;
-    let study = studyH * 60 + studyM;
+    let study = studyM;
     if (study <= 0) study = 25;
     let breakMin = parseInt(document.getElementById('breakTime').value) || 0;
     let hasBreak = !document.getElementById('noBreak').checked && breakMin > 0;
 
     pauseTimer();
-    // If no total goal set, default to the study session length
+    // totalStudyTime: today's total goal in seconds (stored in study_log.planned_sec)
     totalStudyTime = totalHours > 0 ? totalHours * 3600 : study * 60;
+    // studyDuration: study right now in seconds (stored in session.duration_sec)
     studyDuration = study * 60;
     breakDuration = hasBreak ? breakMin * 60 : 0;
     time = studyDuration;
@@ -337,15 +337,16 @@ function closeWelcomeModal() {
 
 function setWelcomeGoal() {
     let totalHours = parseFloat(document.getElementById('welcomeTotalHours').value) || 0;
-    let studyH = parseInt(document.getElementById('welcomeStudyHours').value) || 0;
     let studyM = parseInt(document.getElementById('welcomeStudyMins').value) || 25;
-    let study = studyH * 60 + studyM;
+    let study = studyM;
     if (study <= 0) study = 25;
     let breakMin = parseInt(document.getElementById('welcomeBreakTime').value) || 0;
     let hasBreak = !document.getElementById('welcomeNoBreak').checked && breakMin > 0;
 
     pauseTimer();
+    // totalStudyTime: today's total goal in seconds (stored in study_log.planned_sec)
     totalStudyTime = totalHours > 0 ? totalHours * 3600 : study * 60;
+    // studyDuration: study right now in seconds (stored in session.duration_sec)
     studyDuration = study * 60;
     breakDuration = hasBreak ? breakMin * 60 : 0;
     time = studyDuration;
@@ -675,7 +676,7 @@ function closeEndDayModal() {
     time = studyDuration;
     initialTime = studyDuration;
     updateTimer();
-    document.getElementById('welcomeModal').style.display = 'flex';
+    document.getElementById('durationModal').style.display = 'flex';
 }
 
 /* ========================================

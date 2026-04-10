@@ -92,6 +92,14 @@ body::before{
 .ov-close:hover{background:rgba(255,255,255,.2);color:#fff}
 @media(max-width:680px){.months-grid{grid-template-columns:repeat(2,1fr)}.year-summary{grid-template-columns:repeat(2,1fr)}.heading h1{font-size:22px}.ov-stats{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:420px){.months-grid{grid-template-columns:1fr}.year-summary{grid-template-columns:repeat(2,1fr)}}
+@keyframes analysisTourPulse {
+    0%,100%{box-shadow:0 0 0 3px rgba(174,242,255,.92),0 0 0 10px rgba(174,242,255,.12),0 0 50px 8px rgba(91,158,255,.4)}
+    50%{box-shadow:0 0 0 4px rgba(174,242,255,1),0 0 0 14px rgba(174,242,255,.2),0 0 70px 12px rgba(91,158,255,.6)}
+}
+@keyframes analysisTourFadeIn {
+    from{opacity:0;transform:translateY(8px) scale(.97)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+}
 </style>
 </head>
 <body>
@@ -168,6 +176,29 @@ body::before{
     </div>
 </div>
 
+</div>
+
+<!-- ════════ ANALYSIS PAGE TOUR ════════ -->
+<!-- Canvas-based overlay (drawn via JS — cutout hole around active element) -->
+<div id="analysisTourTooltip" style="display:none;position:fixed;z-index:100000;width:350px;
+    background: linear-gradient(145deg,#040f2e,#062a73);
+    border:1.5px solid rgba(174,242,255,0.3);
+    border-radius:22px;padding:26px 26px 20px;
+    box-shadow:0 24px 60px rgba(0,0,0,0.65),0 0 40px rgba(91,158,255,0.15);
+    pointer-events:auto;
+    transition:top 0.28s cubic-bezier(0.4,0,0.2,1),left 0.28s cubic-bezier(0.4,0,0.2,1);
+    animation:analysisTourFadeIn 0.22s ease-out both;">
+    <div id="analysisTourStep" style="font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:rgba(174,242,255,0.6);margin-bottom:10px;">STEP 1 / 3</div>
+    <div id="analysisTourTitle" style="font-family:'Cinzel',serif;font-size:20px;font-weight:700;color:#aef2ff;margin-bottom:10px;line-height:1.2;"></div>
+    <div id="analysisTourDesc" style="font-size:14px;color:rgba(220,235,255,0.78);line-height:1.65;margin-bottom:22px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:16px;">
+        <button onclick="endAnalysisTour()" style="background:none;border:none;color:rgba(174,242,255,0.36);font-size:13px;cursor:pointer;font-family:inherit;padding:0;font-weight:500;">Skip tour</button>
+        <div style="display:flex;gap:8px;">
+            <button id="analysisTourPrev" onclick="analysisTourPrev()" style="background:rgba(174,242,255,0.1);border:1.5px solid rgba(174,242,255,0.2);color:rgba(255,255,255,0.88);border-radius:50px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:none;">← Prev</button>
+            <button id="analysisTourNext" onclick="analysisTourNext()" style="background:#1a4fa0;border:none;color:#aef2ff;border-radius:50px;padding:9px 24px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px rgba(26,79,160,0.55);">Next →</button>
+        </div>
+    </div>
+    <div id="analysisTourDots" style="display:flex;justify-content:center;gap:7px;"></div>
 </div>
 <script>
 const BASE_URL    = "https://focusflow-backend-mg1p.onrender.com";
@@ -286,8 +317,8 @@ function miniChart(id, data, delay) {
     if (!el) return;
     const ctx = el.getContext('2d');
     const g = ctx.createLinearGradient(0, 0, 0, 70);
-    g.addColorStop(0, 'rgba(174,242,255,0.9)');
-    g.addColorStop(1, 'rgba(91,158,255,0.35)');
+    g.addColorStop(0, 'rgba(30,80,180,0.95)');
+    g.addColorStop(1, 'rgba(10,40,120,0.7)');
     charts[id] = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -498,8 +529,8 @@ function showOv(mon, yr, wd, tot, pk, ses, monIdx) {
     cv.height = 200;
     const ctx = cv.getContext('2d');
     const g   = ctx.createLinearGradient(0, 0, 0, 200);
-    g.addColorStop(0, 'rgba(174,242,255,.92)');
-    g.addColorStop(1, 'rgba(91,158,255,.3)');
+    g.addColorStop(0, 'rgba(30,80,180,0.95)');
+    g.addColorStop(1, 'rgba(10,40,120,0.7)');
     ovChart = new Chart(ctx, {
         type: 'bar',
         data: { labels: ['Week 1','Week 2','Week 3','Week 4'], datasets: [{ data: wd, backgroundColor: g, borderRadius: 10, borderSkipped: false, hoverBackgroundColor: 'rgba(255,255,255,.9)' }] },
@@ -523,6 +554,224 @@ function hideOv() {
 
 document.getElementById('ovBg').addEventListener('click', hideOv);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') hideOv(); });
+</script>
+
+<style>
+@keyframes analysisTourPulse {
+    0%,100% { box-shadow: 0 0 0 3px rgba(174,242,255,.92), 0 0 0 10px rgba(174,242,255,.12), 0 0 50px 8px rgba(91,158,255,.4); }
+    50%      { box-shadow: 0 0 0 3px rgba(174,242,255,1),   0 0 0 16px rgba(174,242,255,.06), 0 0 65px 10px rgba(91,158,255,.55); }
+}
+@keyframes analysisTourFadeIn {
+    from { opacity:0; transform:translateY(10px) scale(0.96); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.at-dot {
+    width:8px; height:8px; border-radius:50%;
+    background:rgba(174,242,255,0.22); transition:all .22s;
+    display:inline-block;
+}
+.at-dot.active {
+    background:#aef2ff; width:24px; border-radius:4px;
+    box-shadow: 0 0 8px rgba(174,242,255,0.55);
+}
+</style>
+
+<script>
+/* ══════════════════════════════════════════════
+   ANALYSIS PAGE TOUR ENGINE  (canvas-cutout)
+══════════════════════════════════════════════ */
+const ANALYSIS_TOUR_STEPS = [
+    {
+        targetSel: '.user-bar',
+        title: '👤 Your Profile',
+        desc: 'At the top you\'ll see <strong>your profile card</strong> — it shows your name, avatar (first letter of your username), and account info. It updates automatically whenever you\'re signed in, so it\'s always personalised to you. 🌟',
+    },
+    {
+        targetSel: '.streak-pill',
+        title: '🔥 Study Streak',
+        desc: 'This is your <strong>Study Streak 🔥</strong> — it counts how many days in a row you\'ve studied. <em>If you go a full 24 hours without any study session, your streak resets to zero!</em> Study every day, even a little, to keep it alive and build serious momentum. 💪',
+    },
+    {
+        targetSel: '#grid',
+        title: '📊 Monthly Bar Charts',
+        desc: 'Below that are your <strong>monthly bar charts 📊</strong> — one card per month, each showing how much you studied broken down by week (W1–W4). The taller the bar, the more hours you studied that week. <strong>Click any month card</strong> to drill into a weekly breakdown, then click a bar to see the daily view! 📅',
+    },
+];
+
+let _atIdx = 0;
+let _atCanvas = null, _atCtx = null, _atRAF = null;
+let _atTargetRect = null, _atPulseT = 0;
+
+function startAnalysisTour() {
+    const dotsEl = document.getElementById('analysisTourDots');
+    dotsEl.innerHTML = '';
+    ANALYSIS_TOUR_STEPS.forEach((_, i) => {
+        const d = document.createElement('span');
+        d.className = 'at-dot' + (i === 0 ? ' active' : '');
+        dotsEl.appendChild(d);
+    });
+    _atIdx = 0;
+    _initAtCanvas();
+    document.getElementById('analysisTourTooltip').style.display = 'block';
+    _showAnalysisTourStep();
+}
+
+function _initAtCanvas() {
+    if (!_atCanvas) {
+        _atCanvas = document.createElement('canvas');
+        _atCanvas.style.cssText = 'position:fixed;inset:0;z-index:99998;pointer-events:none;';
+        document.body.appendChild(_atCanvas);
+        _atCtx = _atCanvas.getContext('2d');
+    }
+    _atCanvas.width  = window.innerWidth;
+    _atCanvas.height = window.innerHeight;
+    _atCanvas.style.display = 'block';
+    _drawAtCanvas(0);
+}
+
+function _drawAtCanvas(ts) {
+    if (!_atCanvas || _atCanvas.style.display === 'none') return;
+    const ctx = _atCtx;
+    const W = _atCanvas.width, H = _atCanvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    // Dark overlay
+    ctx.fillStyle = 'rgba(4,15,46,0.82)';
+    ctx.fillRect(0, 0, W, H);
+
+    if (_atTargetRect) {
+        const PAD = 12, R = 16;
+        const rx = _atTargetRect.left - PAD;
+        const ry = _atTargetRect.top  - PAD;
+        const rw = _atTargetRect.width  + PAD * 2;
+        const rh = _atTargetRect.height + PAD * 2;
+
+        // Cut transparent hole so highlighted element shows through clearly
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.moveTo(rx + R, ry);
+        ctx.arcTo(rx + rw, ry,      rx + rw, ry + rh, R);
+        ctx.arcTo(rx + rw, ry + rh, rx,      ry + rh, R);
+        ctx.arcTo(rx,      ry + rh, rx,      ry,      R);
+        ctx.arcTo(rx,      ry,      rx + rw, ry,      R);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // Pulsing glow border
+        _atPulseT = (ts || 0) / 1000;
+        const pulse     = 0.5 + 0.5 * Math.sin(_atPulseT * Math.PI);
+        const glowAlpha = 0.7 + 0.3 * pulse;
+        const glowSize  = 6   + 4   * pulse;
+
+        ctx.save();
+        ctx.shadowColor  = `rgba(91,158,255,${glowAlpha})`;
+        ctx.shadowBlur   = glowSize * 4;
+        ctx.strokeStyle  = `rgba(174,242,255,${glowAlpha})`;
+        ctx.lineWidth    = 3;
+        ctx.beginPath();
+        ctx.moveTo(rx + R, ry);
+        ctx.arcTo(rx + rw, ry,      rx + rw, ry + rh, R);
+        ctx.arcTo(rx + rw, ry + rh, rx,      ry + rh, R);
+        ctx.arcTo(rx,      ry + rh, rx,      ry,      R);
+        ctx.arcTo(rx,      ry,      rx + rw, ry,      R);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    _atRAF = requestAnimationFrame(_drawAtCanvas);
+}
+
+function _showAnalysisTourStep() {
+    const step  = ANALYSIS_TOUR_STEPS[_atIdx];
+    const total = ANALYSIS_TOUR_STEPS.length;
+
+    document.getElementById('analysisTourStep').textContent  = `STEP ${_atIdx + 1} / ${total}`;
+    document.getElementById('analysisTourTitle').textContent = step.title;
+    document.getElementById('analysisTourDesc').innerHTML    = step.desc;
+
+    document.querySelectorAll('.at-dot').forEach((d, i) =>
+        d.classList.toggle('active', i === _atIdx));
+
+    const prevBtn = document.getElementById('analysisTourPrev');
+    const nextBtn = document.getElementById('analysisTourNext');
+    prevBtn.style.display = _atIdx === 0 ? 'none' : 'inline-flex';
+    nextBtn.textContent   = _atIdx === total - 1 ? '🎉 Finish' : 'Next →';
+
+    const target = document.querySelector(step.targetSel);
+    const tt = document.getElementById('analysisTourTooltip');
+
+    if (!target) {
+        _atTargetRect = null;
+        tt.style.top       = '50%';
+        tt.style.left      = '50%';
+        tt.style.transform = 'translate(-50%,-50%)';
+        return;
+    }
+
+    target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+    setTimeout(() => {
+        tt.style.transform = '';
+        const r  = target.getBoundingClientRect();
+        _atTargetRect = r;
+
+        // Resize canvas for any scroll/layout shifts
+        _atCanvas.width  = window.innerWidth;
+        _atCanvas.height = window.innerHeight;
+
+        tt.style.display = 'block';
+        const TW = 355, TH = 300;
+        const VW = window.innerWidth, VH = window.innerHeight;
+        const M  = 18;
+        let top, left;
+
+        if (r.bottom + M + TH < VH) {
+            top  = r.bottom + M;
+            left = Math.min(Math.max(r.left + r.width/2 - TW/2, 12), VW - TW - 12);
+        } else if (r.top - M - TH > 0) {
+            top  = r.top - M - TH;
+            left = Math.min(Math.max(r.left + r.width/2 - TW/2, 12), VW - TW - 12);
+        } else if (r.right + M + TW < VW) {
+            left = r.right + M;
+            top  = Math.min(Math.max(r.top + r.height/2 - TH/2, 12), VH - TH - 12);
+        } else {
+            left = Math.max(r.left - M - TW, 12);
+            top  = Math.min(Math.max(r.top + r.height/2 - TH/2, 12), VH - TH - 12);
+        }
+        tt.style.top  = top  + 'px';
+        tt.style.left = left + 'px';
+    }, 120);
+}
+
+function analysisTourNext() {
+    if (_atIdx >= ANALYSIS_TOUR_STEPS.length - 1) { endAnalysisTour(); return; }
+    _atIdx++;
+    _showAnalysisTourStep();
+}
+
+function analysisTourPrev() {
+    if (_atIdx <= 0) return;
+    _atIdx--;
+    _showAnalysisTourStep();
+}
+
+function endAnalysisTour() {
+    if (_atRAF) { cancelAnimationFrame(_atRAF); _atRAF = null; }
+    if (_atCanvas) { _atCanvas.style.display = 'none'; }
+    _atTargetRect = null;
+    document.getElementById('analysisTourTooltip').style.display = 'none';
+    localStorage.setItem('ff_analysisTourSeen', '1');
+}
+
+// Auto-launch on first visit to this page
+window.addEventListener('load', function() {
+    if (!localStorage.getItem('ff_analysisTourSeen')) {
+        setTimeout(startAnalysisTour, 1600);
+    }
+});
 </script>
 </body>
 </html>
